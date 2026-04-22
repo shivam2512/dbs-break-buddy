@@ -1,299 +1,259 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const cors = require('cors');
 
 const app = express();
 
-const SECRET = "MY_SUPER_SECRET_KEY_123"; // you can change later
+const SECRET = "MY_SUPER_SECRET_KEY_123";
 
 app.use(express.json());
 app.use(cors());
 
-const db = new sqlite3.Database('./database.db');
+// ================= DB CONNECTION =================
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+});
 
-// IST time
-function getISTISOString() {
-    return new Date().toLocaleString("sv-SE", {
-        timeZone: "Asia/Kolkata"
-    }).replace(" ", "T");
-}
+// ================= INIT DB =================
+async function initDB() {
 
-// ================= DB SETUP =================
-db.serialize(() => {
-    db.run("PRAGMA journal_mode = WAL");
-    db.run("PRAGMA busy_timeout = 5000");
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS employees (
+            id SERIAL PRIMARY KEY,
+            emp_id TEXT UNIQUE,
+            name TEXT
+        );
+    `);
 
-    db.run(`CREATE TABLE IF NOT EXISTS employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        emp_id TEXT UNIQUE,
-        name TEXT
-    )`);
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS break_logs (
+            id SERIAL PRIMARY KEY,
+            emp_id TEXT,
+            employee_name TEXT,
+            reason TEXT,
+            extra_reason TEXT,
+            start_time TIMESTAMP,
+            end_time TIMESTAMP,
+            duration INTEGER
+        );
+    `);
 
-    db.run(`CREATE TABLE IF NOT EXISTS break_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        emp_id TEXT,
-        employee_name TEXT,
-        reason TEXT,
-        extra_reason TEXT,
-        start_time TEXT,
-        end_time TEXT,
-        duration INTEGER
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS admin (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
-    )`);
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS admin (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE,
+            password TEXT
+        );
+    `);
 
     const hashed = bcrypt.hashSync("admin123", 10);
 
-db.run(
-    `INSERT OR IGNORE INTO admin (id, username, password)
-     VALUES (1, 'admin', ?)`,
-    [hashed]
-);
-});
+    await pool.query(`
+        INSERT INTO admin (username, password)
+        VALUES ('admin', $1)
+        ON CONFLICT (username) DO NOTHING
+    `, [hashed]);
+}
 
-// ================= ADMIN AUTH =================
+initDB();
 
-app.post('/admin-login', (req, res) => {
+// ================= AUTH =================
+app.post('/admin-login', async (req, res) => {
     const { username, password } = req.body;
 
-    db.get(
-        "SELECT * FROM admin WHERE username=?",
-        [username],
-        async (err, user) => {
-
-            if (!user) {
-                return res.json({ error: "Invalid credentials" });
-            }
-
-            const isMatch = await bcrypt.compare(password, user.password);
-
-            if (!isMatch) {
-                return res.json({ error: "Invalid credentials" });
-            }
-
-            const token = jwt.sign(
-                { username: user.username },
-                SECRET,
-                { expiresIn: "1h" }
-            );
-
-            res.json({ token });
-        }
+    const result = await pool.query(
+        "SELECT * FROM admin WHERE username=$1",
+        [username]
     );
+
+    const user = result.rows[0];
+
+    if (!user) return res.json({ error: "Invalid credentials" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) return res.json({ error: "Invalid credentials" });
+
+    const token = jwt.sign({ username: user.username }, SECRET, { expiresIn: "1h" });
+
+    res.json({ token });
 });
 
 function verifyAdmin(req, res, next) {
     const token = req.headers['authorization'];
 
-    if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     try {
-        const decoded = jwt.verify(token, SECRET);
-        req.user = decoded;
+        req.user = jwt.verify(token, SECRET);
         next();
-    } catch (err) {
+    } catch {
         return res.status(401).json({ error: "Session expired" });
     }
 }
 
 // ================= EMPLOYEE =================
-
-app.get('/employees', verifyAdmin, (req, res) => {
-    db.all("SELECT * FROM employees", [], (e, r) => res.json(r));
+app.get('/employees', verifyAdmin, async (req, res) => {
+    const r = await pool.query("SELECT * FROM employees");
+    res.json(r.rows);
 });
 
-app.post('/add-employee', verifyAdmin, (req, res) => {
+app.post('/add-employee', verifyAdmin, async (req, res) => {
     const { name } = req.body;
 
-    db.get("SELECT COUNT(*) as count FROM employees", [], (e, row) => {
-        const id = "EMP" + String(row.count + 1).padStart(3, '0');
+    const countRes = await pool.query("SELECT COUNT(*) FROM employees");
+    const id = "EMP" + String(Number(countRes.rows[0].count) + 1).padStart(3, '0');
 
-        db.run(
-            "INSERT INTO employees (emp_id,name) VALUES (?,?)",
-            [id, name],
-            () => res.json({ emp_id: id })
-        );
-    });
-});
-
-app.delete('/delete-employee/:emp_id', verifyAdmin, (req, res) => {
-    db.run(
-        "DELETE FROM employees WHERE emp_id=?",
-        [req.params.emp_id],
-        () => res.json({ success: true })
+    await pool.query(
+        "INSERT INTO employees (emp_id,name) VALUES ($1,$2)",
+        [id, name]
     );
+
+    res.json({ emp_id: id });
 });
 
-// ================= USER FLOW =================
+app.delete('/delete-employee/:emp_id', verifyAdmin, async (req, res) => {
+    await pool.query("DELETE FROM employees WHERE emp_id=$1", [req.params.emp_id]);
+    res.json({ success: true });
+});
 
-app.post('/validate', (req, res) => {
+// ================= USER =================
+app.post('/validate', async (req, res) => {
     const { emp_id } = req.body;
 
-    db.get("SELECT * FROM employees WHERE emp_id=?", [emp_id], (e, row) => {
-        if (row) res.json({ valid: true, name: row.name });
-        else res.json({ valid: false });
-    });
+    const r = await pool.query(
+        "SELECT * FROM employees WHERE emp_id=$1",
+        [emp_id]
+    );
+
+    if (r.rows.length) res.json({ valid: true, name: r.rows[0].name });
+    else res.json({ valid: false });
 });
 
-app.post('/status', (req, res) => {
+app.post('/status', async (req, res) => {
     const { emp_id } = req.body;
 
-    db.get(
-        "SELECT * FROM break_logs WHERE emp_id=? AND end_time IS NULL",
-        [emp_id],
-        (e, row) => {
-            if (row) res.json({ active: true, ...row });
-            else res.json({ active: false });
-        }
+    const r = await pool.query(
+        "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
+        [emp_id]
     );
+
+    if (r.rows.length) res.json({ active: true, ...r.rows[0] });
+    else res.json({ active: false });
 });
 
-app.post('/start', (req, res) => {
+app.post('/start', async (req, res) => {
     const { emp_id, reason, extra } = req.body;
 
-    if (!emp_id || !reason) {
-        return res.json({ error: "Missing data" });
-    }
-
-    db.get(
-        "SELECT * FROM break_logs WHERE emp_id=? AND end_time IS NULL",
-        [emp_id],
-        (e, row) => {
-            if (row) return res.json({ error: "Break already active" });
-
-            const start = getISTISOString();
-
-            db.get(
-                "SELECT name FROM employees WHERE emp_id=?",
-                [emp_id],
-                (e, emp) => {
-                    db.run(
-                        `INSERT INTO break_logs 
-                        (emp_id,employee_name,reason,extra_reason,start_time)
-                        VALUES (?,?,?,?,?)`,
-                        [emp_id, emp.name, reason, extra, start],
-                        () => res.json({ start_time: start })
-                    );
-                }
-            );
-        }
+    const active = await pool.query(
+        "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
+        [emp_id]
     );
+
+    if (active.rows.length) return res.json({ error: "Break already active" });
+
+    const emp = await pool.query(
+        "SELECT name FROM employees WHERE emp_id=$1",
+        [emp_id]
+    );
+
+    const start = new Date();
+
+    await pool.query(`
+        INSERT INTO break_logs 
+        (emp_id, employee_name, reason, extra_reason, start_time)
+        VALUES ($1,$2,$3,$4,$5)
+    `, [emp_id, emp.rows[0].name, reason, extra, start]);
+
+    res.json({ start_time: start });
 });
 
-app.post('/stop', (req, res) => {
+app.post('/stop', async (req, res) => {
     const { emp_id } = req.body;
 
-    db.get(
-        "SELECT * FROM break_logs WHERE emp_id=? AND end_time IS NULL",
-        [emp_id],
-        (e, row) => {
-            if (!row) return res.json({ error: "No active break" });
-
-            const end = getISTISOString();
-
-            const duration = Math.floor(
-                (new Date(end) - new Date(row.start_time)) / 1000
-            );
-
-            db.run(
-                "UPDATE break_logs SET end_time=?, duration=? WHERE id=?",
-                [end, duration, row.id],
-                () => res.json({ success: true })
-            );
-        }
+    const r = await pool.query(
+        "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
+        [emp_id]
     );
+
+    if (!r.rows.length) return res.json({ error: "No active break" });
+
+    const row = r.rows[0];
+    const end = new Date();
+
+    const duration = Math.floor((end - new Date(row.start_time)) / 1000);
+
+    await pool.query(
+        "UPDATE break_logs SET end_time=$1, duration=$2 WHERE id=$3",
+        [end, duration, row.id]
+    );
+
+    res.json({ success: true });
 });
 
 // ================= ADMIN =================
-
-app.get('/active-breaks', verifyAdmin, (req, res) => {
-    db.all(
-        "SELECT * FROM break_logs WHERE end_time IS NULL",
-        [],
-        (e, r) => res.json(r)
+app.get('/active-breaks', verifyAdmin, async (req, res) => {
+    const r = await pool.query(
+        "SELECT * FROM break_logs WHERE end_time IS NULL"
     );
+    res.json(r.rows);
 });
 
-app.get('/logs', verifyAdmin, (req, res) => {
-    db.all(
-        "SELECT * FROM break_logs ORDER BY id DESC",
-        [],
-        (e, r) => res.json(r)
+app.get('/logs', verifyAdmin, async (req, res) => {
+    const r = await pool.query(
+        "SELECT * FROM break_logs ORDER BY id DESC"
     );
+    res.json(r.rows);
 });
 
-app.post('/filter-logs', verifyAdmin, (req, res) => {
+app.post('/filter-logs', verifyAdmin, async (req, res) => {
     const { emp_id, from, to } = req.body;
 
     let query = "SELECT * FROM break_logs WHERE 1=1";
     let params = [];
 
     if (emp_id) {
-        query += " AND emp_id=?";
         params.push(emp_id);
+        query += ` AND emp_id=$${params.length}`;
     }
 
     if (from && to) {
-        query += " AND date(start_time) BETWEEN date(?) AND date(?)";
         params.push(from, to);
+        query += ` AND DATE(start_time) BETWEEN $${params.length-1} AND $${params.length}`;
     }
 
-    db.all(query, params, (e, r) => res.json(r));
+    const r = await pool.query(query, params);
+    res.json(r.rows);
 });
 
-app.post('/force-stop', verifyAdmin, (req, res) => {
+app.post('/force-stop', verifyAdmin, async (req, res) => {
     const { emp_id } = req.body;
 
-    db.get(
-        "SELECT * FROM break_logs WHERE emp_id=? AND end_time IS NULL",
-        [emp_id],
-        (e, row) => {
-            if (!row) return res.json({ error: "No active break" });
-
-            const end = getISTISOString();
-
-            const duration = Math.floor(
-                (new Date(end) - new Date(row.start_time)) / 1000
-            );
-
-            db.run(
-                "UPDATE break_logs SET end_time=?, duration=? WHERE id=?",
-                [end, duration, row.id],
-                () => res.json({ success: true })
-            );
-        }
+    const r = await pool.query(
+        "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
+        [emp_id]
     );
+
+    if (!r.rows.length) return res.json({ error: "No active break" });
+
+    const row = r.rows[0];
+    const end = new Date();
+
+    const duration = Math.floor((end - new Date(row.start_time)) / 1000);
+
+    await pool.query(
+        "UPDATE break_logs SET end_time=$1, duration=$2 WHERE id=$3",
+        [end, duration, row.id]
+    );
+
+    res.json({ success: true });
 });
 
-// app.get('/summary', verifyAdmin, (req, res) => {
-
-//     db.all(`
-//         SELECT 
-//             employee_name, 
-//             COALESCE(SUM(duration), 0) as total_seconds
-//         FROM break_logs
-//         GROUP BY employee_name
-//     `, [], (err, rows) => {
-
-//         if (err) {
-//             console.log(err);
-//             return res.json([]);
-//         }
-
-//         res.json(rows);
-//     });
-// });
-
-// ✅ FIXED EXPORT (MAIN ERROR FIX)
-app.get('/export', verifyAdmin, (req, res) => {
+// ================= EXPORT =================
+app.get('/export', verifyAdmin, async (req, res) => {
 
     function format(sec){
         if(!sec) return "0:00:00";
@@ -303,20 +263,19 @@ app.get('/export', verifyAdmin, (req, res) => {
         return `${h}:${m}:${s}`;
     }
 
-    db.all("SELECT * FROM break_logs", [], (e, rows) => {
+    const r = await pool.query("SELECT * FROM break_logs");
 
-        let csv = "Name,Reason,Extra Details,Start,End,Duration\n";
+    let csv = "Name,Reason,Extra Details,Start,End,Duration\n";
 
-        rows.forEach(r => {
-            csv += `${r.employee_name},${r.reason},${r.extra_reason},${r.start_time},${r.end_time || ""},${format(r.duration)}\n`;
-        });
-
-        res.header("Content-Type", "text/csv");
-        res.attachment("logs.csv");
-        res.send(csv);
+    r.rows.forEach(row => {
+        csv += `${row.employee_name},${row.reason},${row.extra_reason || ""},${row.start_time},${row.end_time || ""},${format(row.duration)}\n`;
     });
+
+    res.header("Content-Type", "text/csv");
+    res.attachment("logs.csv");
+    res.send(csv);
 });
 
 // ================= START =================
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("🚀 Server running on port", PORT));
