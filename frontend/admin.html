@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard</title>
+
+<style>
+body { font-family: Arial; background:#eef2f7; }
+.container { max-width:1200px; margin:auto; }
+.card {
+    background:white;
+    padding:15px;
+    margin:15px;
+    border-radius:10px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+table { width:100%; border-collapse:collapse; }
+th,td { border:1px solid #ddd; padding:8px; }
+th { background:#333; color:white; }
+button { padding:6px 10px; margin:3px; cursor:pointer; }
+.top-bar { display:flex; justify-content:space-between; align-items:center; }
+.logout { background:red; color:white; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="top-bar">
+<h2>📊 Admin Dashboard</h2>
+<button class="logout" onclick="logout()">Logout</button>
+</div>
+
+<!-- Add Employee -->
+<div class="card">
+<h3>Add Employee</h3>
+<input id="empName" placeholder="Enter name">
+<button onclick="addEmployee()">Add</button>
+<p id="msg"></p>
+</div>
+
+<!-- Employees -->
+<div class="card">
+<h3>Employees</h3>
+<table id="empTable"></table>
+</div>
+
+<!-- Active -->
+<div class="card">
+<h3>Active Breaks</h3>
+<table id="activeTable"></table>
+</div>
+
+<!-- Filter -->
+<div class="card">
+<h3>Filter Logs</h3>
+<input id="filterEmp" placeholder="EMP001">
+<input type="date" id="from">
+<input type="date" id="to">
+<button onclick="filterLogs()">Search</button>
+<button onclick="loadLogs()">Reset</button>
+</div>
+
+<!-- Logs -->
+<div class="card">
+<h3>Logs</h3>
+<button onclick="exportCSV()">Download CSV</button>
+<table id="logTable"></table>
+</div>
+
+<!-- Summary -->
+<!-- <div class="card">
+<h3>Summary</h3>
+<table id="summaryTable"></table>
+</div> -->
+
+</div>
+
+<script>
+
+  
+
+
+
+const API="http://localhost:3000";
+const token = localStorage.getItem("admin_token");
+
+// 🔒 Protect page
+if (!token) {
+    window.location.replace("admin-login.html");
+}
+
+setInterval(() => {
+    fetch(API + "/employees", {
+        headers: { "Authorization": token }
+    })
+    .then(res => {
+        if (res.status === 401) {
+            alert("Session expired");
+            localStorage.removeItem("admin_token");
+            window.location.replace("admin-login.html");
+        }
+    });
+}, 30000);
+
+history.pushState(null, null, location.href);
+window.onpopstate = function () {
+    history.go(1);
+};
+
+function logout(){
+    localStorage.removeItem("admin_token");
+    window.location.replace("admin-login.html");
+}
+
+// Format duration
+function formatDuration(sec){
+    if(!sec) return "-";
+    let h = Math.floor(sec / 3600);
+    let m = Math.floor((sec % 3600) / 60);
+    let s = sec % 60;
+    return `${h}:${("0"+m).slice(-2)}:${("0"+s).slice(-2)}`;
+}
+
+// Logout
+function logout(){
+    localStorage.removeItem("admin_token");
+    window.location.href="admin-login.html";
+}
+
+// Add employee
+function addEmployee(){
+    fetch(API+"/add-employee",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization": token
+        },
+        body:JSON.stringify({name:empName.value})
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        msg.innerText="Created: "+d.emp_id;
+        empName.value="";
+        loadEmployees();
+    });
+}
+
+// Delete employee
+function deleteEmp(id){
+    fetch(API+"/delete-employee/"+id,{
+        method:"DELETE",
+        headers:{ "Authorization": token }
+    })
+    .then(()=>loadEmployees());
+}
+
+// Load employees
+function loadEmployees(){
+    fetch(API+"/employees",{
+        headers:{ "Authorization": token }
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        let html="<tr><th>ID</th><th>Name</th><th>Action</th></tr>";
+
+        data.forEach(e=>{
+            html+=`<tr>
+            <td>${e.emp_id}</td>
+            <td>${e.name}</td>
+            <td><button onclick="deleteEmp('${e.emp_id}')">Delete</button></td>
+            </tr>`;
+        });
+
+        empTable.innerHTML=html;
+    });
+}
+
+// Active breaks
+function loadActive(){
+    fetch(API+"/active-breaks",{
+        headers:{ "Authorization": token }
+    })
+    .then(r=>r.json())
+    .then(data=>{
+       let html="<tr><th>Name</th><th>Reason</th><th>Extra</th><th>Action</th></tr>";
+
+        data.forEach(e=>{
+            html+=`<tr>
+            <td>${e.employee_name}</td>
+<td>${e.reason}</td>
+<td>${e.extra_reason || "-"}</td>
+<td><button onclick="forceStop('${e.emp_id}')">Force Stop</button></td>
+            </tr>`;
+        });
+
+        activeTable.innerHTML=html;
+    });
+}
+
+// Force stop
+function forceStop(emp_id){
+    fetch(API+"/force-stop",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization": token
+        },
+        body:JSON.stringify({emp_id})
+    }).then(()=>{
+        loadActive();
+        loadLogs();
+    });
+}
+
+// Load logs
+function loadLogs(){
+    fetch(API+"/logs",{
+        headers:{ "Authorization": token }
+    })
+    .then(r=>r.json())
+    .then(showLogs);
+}
+
+// Show logs
+function showLogs(data){
+let html="<tr><th>Name</th><th>Reason</th><th>Extra Details</th><th>Start</th><th>End</th><th>Duration</th></tr>";
+    data.forEach(e=>{
+        html+=`<tr>
+        <td>${e.employee_name}</td>
+        <td>${e.reason}</td>
+        <td>${e.extra_reason || "-"}</td>
+        <td>${e.start_time}</td>
+        <td>${e.end_time||"-"}</td>
+        <td>${formatDuration(e.duration)}</td>
+        </tr>`;
+    });
+
+    logTable.innerHTML=html;
+}
+
+// Filter logs
+function filterLogs(){
+    fetch(API+"/filter-logs",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization": token
+        },
+        body:JSON.stringify({
+            emp_id:filterEmp.value,
+            from:from.value,
+            to:to.value
+        })
+    })
+    .then(r=>r.json())
+    .then(showLogs);
+}
+
+// Summary
+function loadSummary(){
+    fetch(API+"/summary",{
+        headers:{ "Authorization": token }
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        let html="<tr><th>Name</th><th>Total Duration</th></tr>";
+
+        data.forEach(e=>{
+            html+=`<tr>
+            <td>${e.employee_name}</td>
+            <td>${formatDuration(e.total_minutes)}</td>
+            </tr>`;
+        });
+
+        summaryTable.innerHTML=html;
+    });
+}
+
+// Export CSV (token not supported in window.open → workaround)
+function exportCSV(){
+    fetch(API+"/export",{
+        headers:{ "Authorization": token }
+    })
+    .then(res=>res.blob())
+    .then(blob=>{
+        let url = window.URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = "logs.csv";
+        a.click();
+    });
+}
+
+// Init
+loadEmployees();
+loadActive();
+loadLogs();
+//loadSummary();
+
+</script>
+
+</body>
+</html>

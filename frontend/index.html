@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Break Buddy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 350px;
+            text-align: center;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: none;
+        }
+
+        button {
+            width: 48%;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #startBtn { background: green; color:white; }
+        #stopBtn { background: red; color:white; }
+
+        .timer { font-size: 35px; margin-top: 10px; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>⏳ Break Buddy</h2>
+
+    <input id="empId" placeholder="Enter Employee ID">
+    <button onclick="login()">Login</button>
+
+    <h3 id="empName"></h3>
+
+    <select id="reason">
+        <option value="">Select Reason</option>
+        <option>Tea Break</option>
+        <option>Lunch Break</option>
+        <option>Personal Work</option>
+        <option>Meeting</option>
+        <option>Feedback</option>
+        <option>Other</option>
+    </select>
+
+    <textarea id="extra" placeholder="Enter reason..." style="display:none;"></textarea>
+
+    <div>
+        <button id="startBtn" onclick="startBreak()" disabled>Start</button>
+        <button id="stopBtn" onclick="stopBreak()" disabled>Stop</button>
+    </div>
+
+    <h3 id="currentBreak">🔴 Not on Break</h3>
+
+    <div class="timer" id="timer">00:00</div>
+
+    <div>
+        Start: <span id="startTime">--</span><br>
+        End: <span id="endTime">--</span>
+    </div>
+
+</div>
+
+
+<script>
+const API = "http://localhost:3000";
+
+let emp_id = "";
+let startTime = null;
+let timerInt = null;
+
+// Get elements properly
+const empIdInput = document.getElementById("empId");
+const empNameEl = document.getElementById("empName");
+const reasonSelect = document.getElementById("reason");
+const extraInput = document.getElementById("extra");
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const currentBreak = document.getElementById("currentBreak");
+const timer = document.getElementById("timer");
+const startTimeEl = document.getElementById("startTime");
+const endTimeEl = document.getElementById("endTime");
+
+// LOGIN
+function login(){
+    emp_id = empIdInput.value.trim();
+
+    if(!emp_id){
+        alert("Enter Employee ID");
+        return;
+    }
+
+    fetch(API+"/validate",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({emp_id})
+    })
+    .then(res=>res.json())
+    .then(d=>{
+        if(!d.valid){
+            alert("Invalid ID");
+            return;
+        }
+
+        empNameEl.innerText = "Welcome " + d.name;
+
+        checkStatus();
+    })
+    .catch(err=>{
+        console.error(err);
+        alert("Server not reachable");
+    });
+}
+
+// CHECK STATUS
+function checkStatus(){
+    fetch(API+"/status",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({emp_id})
+    })
+    .then(res=>res.json())
+    .then(d=>{
+        if(d.active){
+            startTime = new Date(d.start_time);
+            startTimer();
+
+            let text = d.reason;
+            if(d.extra_reason){
+                text += " (" + d.extra_reason + ")";
+            }
+
+            currentBreak.innerText = "🟢 " + text;
+
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        } else {
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+    });
+}
+
+// TIMER
+function startTimer(){
+    clearInterval(timerInt);
+
+    timerInt = setInterval(() => {
+
+        // ⏱ Update timer UI
+        let sec = Math.floor((new Date() - startTime)/1000);
+
+        let h = Math.floor(sec/3600);
+        let m = Math.floor((sec%3600)/60);
+        let s = sec%60;
+
+        timer.innerText = `${h}:${("0"+m).slice(-2)}:${("0"+s).slice(-2)}`;
+
+        startTimeEl.innerText =
+            new Date(startTime).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+
+        // 🔥 CHECK STATUS FROM SERVER
+        fetch(API+"/status",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({emp_id})
+        })
+        .then(res=>res.json())
+        .then(d=>{
+            if(!d.active){
+                // 🔥 ADMIN STOP DETECTED
+
+                clearInterval(timerInt);
+
+                currentBreak.innerText = "🔴 Break Ended by Admin";
+                endTimeEl.innerText =
+                    new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+
+                alert("Your break was ended by admin");
+            }
+        });
+
+    }, 1000); // check every 3 sec
+}
+
+// SHOW EXTRA FIELD
+reasonSelect.addEventListener("change", ()=>{
+    if(["Personal Work","Meeting","Feedback","Other"].includes(reasonSelect.value)){
+        extraInput.style.display="block";
+    } else {
+        extraInput.style.display="none";
+    }
+});
+
+// START BREAK
+function startBreak(){
+    fetch(API+"/start",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            emp_id,
+            reason: reasonSelect.value,
+            extra: extraInput.value
+        })
+    })
+    .then(res=>res.json())
+    .then(d=>{
+        if(d.error){
+            alert(d.error);
+            return;
+        }
+
+        startTime = new Date(d.start_time);
+        startTimer();
+
+        currentBreak.innerText = "🟢 " + reasonSelect.value;
+
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+    });
+}
+
+// STOP BREAK
+function stopBreak(){
+    fetch(API+"/stop",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({emp_id})
+    })
+    .then(()=>{
+        clearInterval(timerInt);
+
+        endTimeEl.innerText =
+            new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+
+        currentBreak.innerText = "🔴 Not on Break";
+
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+    });
+}
+</script>
+
+
+</body>
+</html>
