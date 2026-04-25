@@ -225,9 +225,11 @@ function loadLogs(){
 
 // Show logs
 function showLogs(data){
-let html="<tr><th>Name</th><th>Reason</th><th>Extra Details</th><th>Start</th><th>End</th><th>Duration</th></tr>";
+let html="<tr><th>Emp ID</th><th>Name</th><th>Reason</th><th>Extra Details</th><th>Start</th><th>End</th><th>Duration</th></tr>";
+
     data.forEach(e=>{
         html+=`<tr>
+        <td>${e.emp_id}</td>
         <td>${e.employee_name}</td>
         <td>${e.reason}</td>
         <td>${e.extra_reason || "-"}</td>
