@@ -88,6 +88,7 @@
 
 </div>
 
+
 <script>
 
 const API = "https://dbs-break-buddy.onrender.com";
@@ -95,7 +96,7 @@ const API = "https://dbs-break-buddy.onrender.com";
 let emp_id = "";
 let startTime = null;
 let timerInt = null;
-let userStopped = false; // ✅ FIX
+let isStopping = false; // ✅ NEW FLAG (stronger than userStopped)
 
 const empIdInput = document.getElementById("empId");
 const empNameEl = document.getElementById("empName");
@@ -172,6 +173,9 @@ function startTimer(){
         startTimeEl.innerText =
             new Date(startTime).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
 
+        // ❌ STOP polling if user clicked stop
+        if (isStopping) return;
+
         fetch(API+"/status",{
             method:"POST",
             headers:{"Content-Type":"application/json"},
@@ -184,14 +188,12 @@ function startTimer(){
 
                 clearInterval(timerInt);
 
-                if(!userStopped && d.ended_by === "ADMIN"){
+                if(d.ended_by === "ADMIN"){
                     currentBreak.innerText = "🔴 Break Ended by Admin";
                     alert("Your break was ended by admin");
                 } else {
                     currentBreak.innerText = "🔴 Not on Break";
                 }
-
-                userStopped = false;
 
                 endTimeEl.innerText =
                     new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
@@ -210,7 +212,7 @@ reasonSelect.addEventListener("change", ()=>{
 });
 
 function startBreak(){
-    userStopped = false;
+    isStopping = false;
 
     fetch(API+"/start",{
         method:"POST",
@@ -236,7 +238,8 @@ function startBreak(){
 }
 
 function stopBreak(){
-    userStopped = true;
+    isStopping = true; // ✅ BLOCK polling instantly
+    clearInterval(timerInt); // ✅ STOP timer immediately
 
     fetch(API+"/stop",{
         method:"POST",
@@ -244,8 +247,6 @@ function stopBreak(){
         body:JSON.stringify({emp_id})
     })
     .then(()=>{
-        clearInterval(timerInt);
-
         currentBreak.innerText = "🔴 Not on Break";
 
         endTimeEl.innerText =
@@ -255,6 +256,7 @@ function stopBreak(){
         stopBtn.disabled = true;
     });
 }
+
 
 </script>
 </body>
