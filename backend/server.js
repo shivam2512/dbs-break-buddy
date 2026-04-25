@@ -104,15 +104,22 @@ app.get('/employees', verifyAdmin, async (req, res) => {
 app.post('/add-employee', verifyAdmin, async (req, res) => {
     const { name } = req.body;
 
-    const countRes = await pool.query("SELECT COUNT(*) FROM employees");
-    const id = "EMP" + String(Number(countRes.rows[0].count) + 1).padStart(3, '0');
+    try {
+    const result = await pool.query(`
+        INSERT INTO employees (emp_id, name)
+        VALUES (
+            'EMP' || LPAD(nextval('emp_seq')::text, 3, '0'),
+            $1
+        )
+        RETURNING emp_id
+    `, [name]);
 
-    await pool.query(
-        "INSERT INTO employees (emp_id,name) VALUES ($1,$2)",
-        [id, name]
-    );
+    res.json({ emp_id: result.rows[0].emp_id });
 
-    res.json({ emp_id: id });
+} catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to add employee" });
+}
 });
 
 app.delete('/delete-employee/:emp_id', verifyAdmin, async (req, res) => {
