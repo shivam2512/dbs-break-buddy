@@ -16,7 +16,7 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// ================= IST FORMAT =================
+// ================= TIME FORMAT =================
 function toIST(date) {
     if (!date) return "";
     return new Date(date).toLocaleString("en-IN", {
@@ -34,6 +34,11 @@ async function initDB() {
             emp_id TEXT UNIQUE,
             name TEXT
         );
+    `);
+
+    // 🔥 sequence for emp_id
+    await pool.query(`
+        CREATE SEQUENCE IF NOT EXISTS emp_seq START 1;
     `);
 
     await pool.query(`
@@ -57,11 +62,6 @@ async function initDB() {
         );
     `);
 
-    // sequence for emp_id
-    await pool.query(`
-        CREATE SEQUENCE IF NOT EXISTS emp_seq START 1;
-    `);
-
     const hashed = bcrypt.hashSync("admin123", 10);
 
     await pool.query(`
@@ -83,12 +83,18 @@ app.post('/admin-login', async (req, res) => {
     );
 
     const user = result.rows[0];
+
     if (!user) return res.json({ error: "Invalid credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) return res.json({ error: "Invalid credentials" });
 
-    const token = jwt.sign({ username: user.username }, SECRET, { expiresIn: "20m" });
+    const token = jwt.sign(
+        { username: user.username },
+        SECRET,
+        { expiresIn: "20m" } // ✅ session expiry
+    );
 
     res.json({ token });
 });
@@ -163,6 +169,7 @@ app.post('/status', async (req, res) => {
     else res.json({ active: false });
 });
 
+// ================= START BREAK =================
 app.post('/start', async (req, res) => {
     const { emp_id, reason, extra } = req.body;
 
@@ -211,6 +218,7 @@ app.post('/start', async (req, res) => {
     res.json({ start_time: start });
 });
 
+// ================= STOP =================
 app.post('/stop', async (req, res) => {
     const { emp_id } = req.body;
 
@@ -223,6 +231,7 @@ app.post('/stop', async (req, res) => {
 
     const row = r.rows[0];
     const end = new Date();
+
     const duration = Math.floor((end - new Date(row.start_time)) / 1000);
 
     await pool.query(
@@ -234,6 +243,11 @@ app.post('/stop', async (req, res) => {
 });
 
 // ================= ADMIN =================
+app.get('/active-breaks', verifyAdmin, async (req, res) => {
+    const r = await pool.query("SELECT * FROM break_logs WHERE end_time IS NULL");
+    res.json(r.rows);
+});
+
 app.get('/logs', verifyAdmin, async (req, res) => {
     const r = await pool.query("SELECT * FROM break_logs ORDER BY id DESC");
 
@@ -271,6 +285,29 @@ app.post('/filter-logs', verifyAdmin, async (req, res) => {
     }));
 
     res.json(formatted);
+});
+
+app.post('/force-stop', verifyAdmin, async (req, res) => {
+    const { emp_id } = req.body;
+
+    const r = await pool.query(
+        "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
+        [emp_id]
+    );
+
+    if (!r.rows.length) return res.json({ error: "No active break" });
+
+    const row = r.rows[0];
+    const end = new Date();
+
+    const duration = Math.floor((end - new Date(row.start_time)) / 1000);
+
+    await pool.query(
+        "UPDATE break_logs SET end_time=$1, duration=$2 WHERE id=$3",
+        [end, duration, row.id]
+    );
+
+    res.json({ success: true });
 });
 
 // ================= EXPORT =================

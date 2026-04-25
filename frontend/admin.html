@@ -184,14 +184,15 @@ function loadActive(){
     })
     .then(r=>r.json())
     .then(data=>{
-       let html="<tr><th>Name</th><th>Reason</th><th>Extra</th><th>Action</th></tr>";
+        let html="<tr><th>Emp ID</th><th>Name</th><th>Reason</th><th>Extra</th><th>Action</th></tr>";
 
         data.forEach(e=>{
             html+=`<tr>
+            <td>${e.emp_id}</td>
             <td>${e.employee_name}</td>
-<td>${e.reason}</td>
-<td>${e.extra_reason || "-"}</td>
-<td><button onclick="forceStop('${e.emp_id}')">Force Stop</button></td>
+            <td>${e.reason}</td>
+            <td>${e.extra_reason || "-"}</td>
+            <td><button onclick="forceStop('${e.emp_id}')">Force Stop</button></td>
             </tr>`;
         });
 
@@ -227,19 +228,19 @@ function loadLogs(){
 function showLogs(data){
 let html="<tr><th>Emp ID</th><th>Name</th><th>Reason</th><th>Extra Details</th><th>Start</th><th>End</th><th>Duration</th></tr>";
 
-    data.forEach(e=>{
-        html+=`<tr>
-        <td>${e.emp_id}</td>
-        <td>${e.employee_name}</td>
-        <td>${e.reason}</td>
-        <td>${e.extra_reason || "-"}</td>
-        <td>${e.start_time}</td>
-        <td>${e.end_time||"-"}</td>
-        <td>${formatDuration(e.duration)}</td>
-        </tr>`;
-    });
+data.forEach(e=>{
+    html+=`<tr>
+    <td>${e.emp_id}</td>
+    <td>${e.employee_name}</td>
+    <td>${e.reason}</td>
+    <td>${e.extra_reason || "-"}</td>
+    <td>${e.start_time}</td>
+    <td>${e.end_time||"-"}</td>
+    <td>${formatDuration(e.duration)}</td>
+    </tr>`;
+});
 
-    logTable.innerHTML=html;
+logTable.innerHTML=html;
 }
 
 // Filter logs
