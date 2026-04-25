@@ -155,13 +155,14 @@ app.post('/status', async (req, res) => {
 app.post('/start', async (req, res) => {
     const { emp_id, reason, extra } = req.body;
 
-    // ✅ Dropdown validation
     if (!reason || reason.trim() === "") {
         return res.status(400).json({ error: "Please select a reason" });
     }
 
-    // ✅ MAIN FIX: extra (textarea) mandatory
-    if (!extra || extra.trim() === "") {
+    // ✅ Only require extra for specific reasons
+    const requiresExtra = ["Personal Work", "Meeting", "Feedback", "Other"];
+
+    if (requiresExtra.includes(reason) && (!extra || extra.trim() === "")) {
         return res.status(400).json({ error: "Please enter reason details" });
     }
 
@@ -193,7 +194,7 @@ app.post('/start', async (req, res) => {
         emp_id,
         emp.rows[0].name,
         reason.trim(),
-        extra.trim(),
+        extra ? extra.trim() : null,
         start
     ]);
 

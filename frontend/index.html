@@ -227,13 +227,15 @@ reasonSelect.addEventListener("change", ()=>{
 // START BREAK
 function startBreak(){
 
-    // ✅ VALIDATION BEFORE API CALL
     if (!reasonSelect.value) {
         alert("Please select a reason");
         return;
     }
 
-    if (!extraInput.value || extraInput.value.trim() === "") {
+    const requiresExtra = ["Personal Work","Meeting","Feedback","Other"];
+
+    if (requiresExtra.includes(reasonSelect.value) &&
+        (!extraInput.value || extraInput.value.trim() === "")) {
         alert("Please enter reason details");
         return;
     }
