@@ -197,23 +197,25 @@ function startTimer(){
         .then(res => res.json())
         .then(d => {
 
-            if (!d.active) {
-                clearInterval(timerInt);
+           if (!d.active) {
+    clearInterval(timerInt);
 
-                // ✅ Correct handling
-                if (d.ended_by === "ADMIN") {
-                    currentBreak.innerText = "🔴 Break Ended by Admin";
-                    alert("Your break was ended by admin");
-                } else {
-                    currentBreak.innerText = "🔴 Break Ended";
-                }
+    // ✅ CRITICAL FIX
+    if (!userStopped && d.ended_by === "ADMIN") {
+        currentBreak.innerText = "🔴 Break Ended by Admin";
+        alert("Your break was ended by admin");
+    } else {
+        currentBreak.innerText = "🔴 Break Ended";
+    }
 
-                endTimeEl.innerText =
-                    new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+    userStopped = false; // reset
 
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-            }
+    endTimeEl.innerText =
+        new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+}
 
         })
         .catch(err => {
@@ -276,6 +278,8 @@ function startBreak(){
 
 // STOP BREAK
 function stopBreak(){
+    userStopped = true; // ✅ mark user action
+
     fetch(API+"/stop",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
@@ -284,10 +288,10 @@ function stopBreak(){
     .then(()=>{
         clearInterval(timerInt);
 
+        currentBreak.innerText = "🔴 Not on Break";
+
         endTimeEl.innerText =
             new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
-
-        currentBreak.innerText = "🔴 Not on Break";
 
         startBtn.disabled = false;
         stopBtn.disabled = true;
