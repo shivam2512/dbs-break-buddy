@@ -155,17 +155,29 @@ app.post('/status', async (req, res) => {
 app.post('/start', async (req, res) => {
     const { emp_id, reason, extra } = req.body;
 
+    // ✅ VALIDATION: reason must not be empty
+    if (!reason || reason.trim() === "") {
+        return res.status(400).json({ error: "Reason is required" });
+    }
+
     const active = await pool.query(
         "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
         [emp_id]
     );
 
-    if (active.rows.length) return res.json({ error: "Break already active" });
+    if (active.rows.length) {
+        return res.json({ error: "Break already active" });
+    }
 
     const emp = await pool.query(
         "SELECT name FROM employees WHERE emp_id=$1",
         [emp_id]
     );
+
+    // ✅ HANDLE INVALID EMPLOYEE
+    if (!emp.rows.length) {
+        return res.status(404).json({ error: "Employee not found" });
+    }
 
     const start = new Date();
 
@@ -173,7 +185,13 @@ app.post('/start', async (req, res) => {
         INSERT INTO break_logs 
         (emp_id, employee_name, reason, extra_reason, start_time)
         VALUES ($1,$2,$3,$4,$5)
-    `, [emp_id, emp.rows[0].name, reason, extra, start]);
+    `, [
+        emp_id,
+        emp.rows[0].name,
+        reason.trim(),                 // ✅ clean reason
+        extra ? extra.trim() : null,   // ✅ clean extra
+        start
+    ]);
 
     res.json({ start_time: start });
 });
