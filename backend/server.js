@@ -326,7 +326,7 @@ app.get('/export', verifyAdmin, async (req, res) => {
     let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration\n";
 
     r.rows.forEach(row => {
-        csv += `${row.emp_id},${row.employee_name},${row.reason},${row.extra_reason || ""},${toIST(row.start_time)},${toIST(row.end_time)},${format(row.duration)}\n`;
+csv += `${row.emp_id},${row.employee_name},${row.reason},${row.extra_reason || ""},"${toIST(row.start_time)}","${toIST(row.end_time)}",${format(row.duration)}\n`;
     });
 
     res.header("Content-Type", "text/csv");

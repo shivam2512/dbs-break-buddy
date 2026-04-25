@@ -109,10 +109,7 @@ window.onpopstate = function () {
     history.go(1);
 };
 
-function logout(){
-    localStorage.removeItem("admin_token");
-    window.location.replace("admin-login.html");
-}
+
 
 // Format duration
 function formatDuration(sec){
