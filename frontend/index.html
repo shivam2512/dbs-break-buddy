@@ -88,17 +88,15 @@
 
 </div>
 
-
 <script>
-//const API = "http://localhost:3000";
 
 const API = "https://dbs-break-buddy.onrender.com";
 
 let emp_id = "";
 let startTime = null;
 let timerInt = null;
+let userStopped = false; // ✅ FIX
 
-// Get elements properly
 const empIdInput = document.getElementById("empId");
 const empNameEl = document.getElementById("empName");
 const reasonSelect = document.getElementById("reason");
@@ -110,7 +108,6 @@ const timer = document.getElementById("timer");
 const startTimeEl = document.getElementById("startTime");
 const endTimeEl = document.getElementById("endTime");
 
-// LOGIN
 function login(){
     emp_id = empIdInput.value.trim();
 
@@ -132,16 +129,10 @@ function login(){
         }
 
         empNameEl.innerText = "Welcome " + d.name;
-
         checkStatus();
-    })
-    .catch(err=>{
-        console.error(err);
-        alert("Server not reachable");
     });
 }
 
-// CHECK STATUS
 function checkStatus(){
     fetch(API+"/status",{
         method:"POST",
@@ -154,12 +145,7 @@ function checkStatus(){
             startTime = new Date(d.start_time);
             startTimer();
 
-            let text = d.reason;
-            if(d.extra_reason){
-                text += " (" + d.extra_reason + ")";
-            }
-
-            currentBreak.innerText = "🟢 " + text;
+            currentBreak.innerText = "🟢 " + d.reason;
 
             startBtn.disabled = true;
             stopBtn.disabled = false;
@@ -170,13 +156,11 @@ function checkStatus(){
     });
 }
 
-// TIMER
 function startTimer(){
     clearInterval(timerInt);
 
     timerInt = setInterval(() => {
 
-        // ⏱ Timer calculation
         let sec = Math.floor((new Date() - startTime) / 1000);
 
         let h = Math.floor(sec / 3600);
@@ -186,69 +170,47 @@ function startTimer(){
         timer.innerText = `${h}:${("0"+m).slice(-2)}:${("0"+s).slice(-2)}`;
 
         startTimeEl.innerText =
-            new Date(startTime).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+            new Date(startTime).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
 
-        // 🔥 Check break status from server
-        fetch(API + "/status", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ emp_id })
+        fetch(API+"/status",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({emp_id})
         })
-        .then(res => res.json())
-        .then(d => {
+        .then(res=>res.json())
+        .then(d=>{
 
-           if (!d.active) {
-    clearInterval(timerInt);
+            if(!d.active){
 
-    // ✅ CRITICAL FIX
-    if (!userStopped && d.ended_by === "ADMIN") {
-        currentBreak.innerText = "🔴 Break Ended by Admin";
-        alert("Your break was ended by admin");
-    } else {
-        currentBreak.innerText = "🔴 Break Ended";
-    }
+                clearInterval(timerInt);
 
-    userStopped = false; // reset
+                if(!userStopped && d.ended_by === "ADMIN"){
+                    currentBreak.innerText = "🔴 Break Ended by Admin";
+                    alert("Your break was ended by admin");
+                } else {
+                    currentBreak.innerText = "🔴 Not on Break";
+                }
 
-    endTimeEl.innerText =
-        new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+                userStopped = false;
 
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-}
+                endTimeEl.innerText =
+                    new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
 
-        })
-        .catch(err => {
-            console.error("Status check failed:", err);
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+
         });
 
-    }, 1000); // ✅ optimized polling (1 sec)
+    },2000);
 }
 
-// SHOW EXTRA FIELD
 reasonSelect.addEventListener("change", ()=>{
-    if (reasonSelect.value) {
-        extraInput.style.display = "block";
-    } else {
-        extraInput.style.display = "none";
-    }
+    extraInput.style.display = reasonSelect.value ? "block" : "none";
 });
 
-// START BREAK
 function startBreak(){
-
-    if (!reasonSelect.value) {
-        alert("Please select a reason");
-        return;
-    }
-
-    const requiresExtra = ["Personal Work","Meeting","Feedback","Other"];
-
-    if (requiresExtra.includes(reasonSelect.value) &&
-        (!extraInput.value || extraInput.value.trim() === "")) {
-        alert("Please enter reason details");
-        return;
-    }
+    userStopped = false;
 
     fetch(API+"/start",{
         method:"POST",
@@ -261,10 +223,7 @@ function startBreak(){
     })
     .then(res=>res.json())
     .then(d=>{
-        if(d.error){
-            alert(d.error);
-            return;
-        }
+        if(d.error){ alert(d.error); return; }
 
         startTime = new Date(d.start_time);
         startTimer();
@@ -276,9 +235,8 @@ function startBreak(){
     });
 }
 
-// STOP BREAK
 function stopBreak(){
-    userStopped = true; // ✅ mark user action
+    userStopped = true;
 
     fetch(API+"/stop",{
         method:"POST",
@@ -297,8 +255,7 @@ function stopBreak(){
         stopBtn.disabled = true;
     });
 }
+
 </script>
-
-
 </body>
 </html>

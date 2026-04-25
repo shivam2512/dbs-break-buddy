@@ -36,7 +36,6 @@ async function initDB() {
         );
     `);
 
-    // 🔥 sequence for emp_id
     await pool.query(`
         CREATE SEQUENCE IF NOT EXISTS emp_seq START 1;
     `);
@@ -50,8 +49,15 @@ async function initDB() {
             extra_reason TEXT,
             start_time TIMESTAMP,
             end_time TIMESTAMP,
-            duration INTEGER
+            duration INTEGER,
+            ended_by TEXT
         );
+    `);
+
+    // ✅ Ensure column exists (important for old DB)
+    await pool.query(`
+        ALTER TABLE break_logs 
+        ADD COLUMN IF NOT EXISTS ended_by TEXT;
     `);
 
     await pool.query(`
@@ -93,7 +99,7 @@ app.post('/admin-login', async (req, res) => {
     const token = jwt.sign(
         { username: user.username },
         SECRET,
-        { expiresIn: "20m" } // ✅ session expiry
+        { expiresIn: "20m" }
     );
 
     res.json({ token });
@@ -157,30 +163,31 @@ app.post('/validate', async (req, res) => {
     else res.json({ valid: false });
 });
 
+// ✅ STATUS FIXED
 app.post('/status', async (req, res) => {
     const { emp_id } = req.body;
 
-    const r = await pool.query(
+    const active = await pool.query(
         "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
         [emp_id]
     );
 
-    if (r.rows.length) {
-        res.json({ active: true, ...r.rows[0] });
-    } else {
-        const last = await pool.query(
-            "SELECT ended_by FROM break_logs WHERE emp_id=$1 ORDER BY id DESC LIMIT 1",
-            [emp_id]
-        );
-
-        res.json({
-            active: false,
-            ended_by: last.rows.length ? last.rows[0].ended_by : null
-        });
+    if (active.rows.length) {
+        return res.json({ active: true, ...active.rows[0] });
     }
+
+    const last = await pool.query(
+        "SELECT ended_by FROM break_logs WHERE emp_id=$1 ORDER BY id DESC LIMIT 1",
+        [emp_id]
+    );
+
+    res.json({
+        active: false,
+        ended_by: last.rows.length ? last.rows[0].ended_by : null
+    });
 });
 
-// ================= START BREAK =================
+// ================= START =================
 app.post('/start', async (req, res) => {
     const { emp_id, reason, extra } = req.body;
 
@@ -229,7 +236,7 @@ app.post('/start', async (req, res) => {
     res.json({ start_time: start });
 });
 
-// ================= STOP =================
+// ================= STOP (USER) =================
 app.post('/stop', async (req, res) => {
     const { emp_id } = req.body;
 
@@ -298,6 +305,7 @@ app.post('/filter-logs', verifyAdmin, async (req, res) => {
     res.json(formatted);
 });
 
+// ================= FORCE STOP (ADMIN) =================
 app.post('/force-stop', verifyAdmin, async (req, res) => {
     const { emp_id } = req.body;
 
@@ -334,10 +342,10 @@ app.get('/export', verifyAdmin, async (req, res) => {
 
     const r = await pool.query("SELECT * FROM break_logs");
 
-    let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration\n";
+    let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration,Ended By\n";
 
     r.rows.forEach(row => {
-csv += `${row.emp_id},${row.employee_name},${row.reason},${row.extra_reason || ""},"${toIST(row.start_time)}","${toIST(row.end_time)}",${format(row.duration)}\n`;
+        csv += `${row.emp_id},${row.employee_name},${row.reason},${row.extra_reason || ""},"${toIST(row.start_time)}","${toIST(row.end_time)}",${format(row.duration)},${row.ended_by || ""}\n`;
     });
 
     res.header("Content-Type", "text/csv");
