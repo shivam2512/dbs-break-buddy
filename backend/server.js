@@ -155,9 +155,14 @@ app.post('/status', async (req, res) => {
 app.post('/start', async (req, res) => {
     const { emp_id, reason, extra } = req.body;
 
-    // ✅ VALIDATION: reason must not be empty
+    // ✅ Dropdown validation
     if (!reason || reason.trim() === "") {
-        return res.status(400).json({ error: "Reason is required" });
+        return res.status(400).json({ error: "Please select a reason" });
+    }
+
+    // ✅ MAIN FIX: extra (textarea) mandatory
+    if (!extra || extra.trim() === "") {
+        return res.status(400).json({ error: "Please enter reason details" });
     }
 
     const active = await pool.query(
@@ -174,7 +179,6 @@ app.post('/start', async (req, res) => {
         [emp_id]
     );
 
-    // ✅ HANDLE INVALID EMPLOYEE
     if (!emp.rows.length) {
         return res.status(404).json({ error: "Employee not found" });
     }
@@ -188,8 +192,8 @@ app.post('/start', async (req, res) => {
     `, [
         emp_id,
         emp.rows[0].name,
-        reason.trim(),                 // ✅ clean reason
-        extra ? extra.trim() : null,   // ✅ clean extra
+        reason.trim(),
+        extra.trim(),
         start
     ]);
 
