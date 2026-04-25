@@ -176,45 +176,51 @@ function startTimer(){
 
     timerInt = setInterval(() => {
 
-        // ⏱ Update timer UI
-        let sec = Math.floor((new Date() - startTime)/1000);
+        // ⏱ Timer calculation
+        let sec = Math.floor((new Date() - startTime) / 1000);
 
-        let h = Math.floor(sec/3600);
-        let m = Math.floor((sec%3600)/60);
-        let s = sec%60;
+        let h = Math.floor(sec / 3600);
+        let m = Math.floor((sec % 3600) / 60);
+        let s = sec % 60;
 
         timer.innerText = `${h}:${("0"+m).slice(-2)}:${("0"+s).slice(-2)}`;
 
         startTimeEl.innerText =
-            new Date(startTime).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+            new Date(startTime).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
 
-        // 🔥 CHECK STATUS FROM SERVER
-        fetch(API+"/status",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({emp_id})
+        // 🔥 Check break status from server
+        fetch(API + "/status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ emp_id })
         })
-        .then(res=>res.json())
-        .then(d=>{
-          if(!d.active){
-    clearInterval(timerInt);
+        .then(res => res.json())
+        .then(d => {
 
-    if(d.ended_by === "ADMIN"){
-        currentBreak.innerText = "🔴 Break Ended by Admin";
-        alert("Your break was ended by admin");
-    } else {
-        currentBreak.innerText = "🔴 Break Ended";
-    }
+            if (!d.active) {
+                clearInterval(timerInt);
 
-    endTimeEl.innerText =
-        new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+                // ✅ Correct handling
+                if (d.ended_by === "ADMIN") {
+                    currentBreak.innerText = "🔴 Break Ended by Admin";
+                    alert("Your break was ended by admin");
+                } else {
+                    currentBreak.innerText = "🔴 Break Ended";
+                }
 
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-}
+                endTimeEl.innerText =
+                    new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+
+        })
+        .catch(err => {
+            console.error("Status check failed:", err);
         });
 
-    }, 1000); // check every 3 sec
+    }, 1000); // ✅ optimized polling (1 sec)
 }
 
 // SHOW EXTRA FIELD
