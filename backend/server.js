@@ -165,8 +165,20 @@ app.post('/status', async (req, res) => {
         [emp_id]
     );
 
-    if (r.rows.length) res.json({ active: true, ...r.rows[0] });
-    else res.json({ active: false });
+    if (r.rows.length) {
+    res.json({ active: true, ...r.rows[0] });
+} else {
+    // get last record to know who ended it
+    const last = await pool.query(
+        "SELECT ended_by FROM break_logs WHERE emp_id=$1 ORDER BY id DESC LIMIT 1",
+        [emp_id]
+    );
+
+    res.json({
+        active: false,
+        ended_by: last.rows[0]?.ended_by || null
+    });
+}
 });
 
 // ================= START BREAK =================
@@ -235,7 +247,7 @@ app.post('/stop', async (req, res) => {
     const duration = Math.floor((end - new Date(row.start_time)) / 1000);
 
     await pool.query(
-        "UPDATE break_logs SET end_time=$1, duration=$2 WHERE id=$3",
+      "UPDATE break_logs SET end_time=$1, duration=$2, ended_by='USER' WHERE id=$3",
         [end, duration, row.id]
     );
 
@@ -303,7 +315,7 @@ app.post('/force-stop', verifyAdmin, async (req, res) => {
     const duration = Math.floor((end - new Date(row.start_time)) / 1000);
 
     await pool.query(
-        "UPDATE break_logs SET end_time=$1, duration=$2 WHERE id=$3",
+        "UPDATE break_logs SET end_time=$1, duration=$2, ended_by='ADMIN' WHERE id=$3",
         [end, duration, row.id]
     );
 
