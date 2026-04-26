@@ -356,11 +356,12 @@ document.addEventListener("DOMContentLoaded", () => {
 Describe the issue:
 `;
 
-        window.location.href =
-            `mailto:shivamshinde786@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const gmailURL =
+`https://mail.google.com/mail/?view=cm&fs=1&to=shivamshinde786@gmail.com&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+        window.open(gmailURL, "_blank"); // opens Gmail in new tab
     });
 });
-
 
 </script>
 </body>
