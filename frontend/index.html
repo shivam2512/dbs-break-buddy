@@ -88,6 +88,14 @@
         End: <span id="endTime">--</span>
     </div>
 
+<div style="margin-top:15px; font-size:12px;">
+    ⚠️ Found a bug?
+    <a id="bugLink" href="#" style="color:#ffd700; text-decoration:underline;">
+        Click here
+    </a>
+</div>
+
+
 </div>
 
 
@@ -336,6 +344,22 @@ function stopBreak(){
         stopBtn.disabled = true;
     });
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("bugLink").addEventListener("click", () => {
+
+        const subject = "Bug Report - Break Buddy";
+
+        const body =
+`Employee ID: ${emp_id || "Not Logged In"}
+
+Describe the issue:
+`;
+
+        window.location.href =
+            `mailto:shivamshinde786@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    });
+});
 
 
 </script>
