@@ -61,14 +61,16 @@
     <h3 id="empName"></h3>
 
     <select id="reason">
-        <option value="">Select Reason</option>
-        <option>Tea Break</option>
-        <option>Lunch Break</option>
-        <option>Personal Work</option>
-        <option>Meeting</option>
-        <option>Feedback</option>
-        <option>Other</option>
-    </select>
+    <option value="">Select Reason</option>
+    <option>Tea Break</option>
+    <option>Lunch Break</option>
+    <option>Personal Work</option>
+    <option>Meeting</option>
+    <option>Feedback</option>
+    <option>Quality Feedback</option> <!-- ✅ NEW -->
+    <option>Operation Feedback</option> <!-- ✅ NEW -->
+    <option>Other</option>
+</select>
 
     <textarea id="extra" placeholder="Enter reason..." style="display:none;"></textarea>
 
@@ -208,12 +210,78 @@ function startTimer(){
 }
 
 reasonSelect.addEventListener("change", ()=>{
-    extraInput.style.display = reasonSelect.value ? "block" : "none";
+
+    const requiresExtra = [
+        "Personal Work",
+        "Meeting",
+        "Feedback",
+        "Quality Feedback",     // ✅ NEW
+        "Operation Feedback",   // ✅ NEW
+        "Other"
+    ];
+
+    if (requiresExtra.includes(reasonSelect.value)) {
+        extraInput.style.display = "block";
+    } else {
+        extraInput.style.display = "none";
+        extraInput.value = ""; // reset
+    }
 });
 
+// function startBreak(){
+//     isStopping = false;
+
+//     fetch(API+"/start",{
+//         method:"POST",
+//         headers:{"Content-Type":"application/json"},
+//         body:JSON.stringify({
+//             emp_id,
+//             reason: reasonSelect.value,
+//             extra: extraInput.value
+//         })
+//     })
+//     .then(res=>res.json())
+//     .then(d=>{
+//         if(d.error){ alert(d.error); return; }
+
+//         startTime = new Date(d.start_time);
+//         startTimer();
+
+//         currentBreak.innerText = "🟢 " + reasonSelect.value;
+
+//         startBtn.disabled = true;
+//         stopBtn.disabled = false;
+//     });
+// }
+
 function startBreak(){
+
     isStopping = false;
 
+    // ✅ Validate reason selected
+    if (!reasonSelect.value) {
+        alert("Please select a reason");
+        return;
+    }
+
+    // ✅ Reasons that REQUIRE extra input
+    const requiresExtra = [
+        "Personal Work",
+        "Meeting",
+        "Feedback",
+        "Quality Feedback",
+        "Operation Feedback",
+        "Other"
+    ];
+
+    // ✅ Validate extra field
+    if (requiresExtra.includes(reasonSelect.value) &&
+        (!extraInput.value || extraInput.value.trim() === "")) {
+        alert("Please enter reason details");
+        return;
+    }
+
+    // ✅ API call
     fetch(API+"/start",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
@@ -225,7 +293,10 @@ function startBreak(){
     })
     .then(res=>res.json())
     .then(d=>{
-        if(d.error){ alert(d.error); return; }
+        if(d.error){ 
+            alert(d.error); 
+            return; 
+        }
 
         startTime = new Date(d.start_time);
         startTimer();
