@@ -144,14 +144,23 @@ function checkStatus(){
     })
     .then(res=>res.json())
     .then(d=>{
+
         if(d.active){
             startTime = new Date(d.start_time);
             startTimer();
 
-            currentBreak.innerText = "🟢 " + d.reason;
+            // ✅ FIX: include extra_reason
+            let text = d.reason;
+
+            if (d.extra_reason && d.extra_reason.trim() !== "") {
+                text += " (" + d.extra_reason + ")";
+            }
+
+            currentBreak.innerText = "🟢 " + text;
 
             startBtn.disabled = true;
             stopBtn.disabled = false;
+
         } else {
             startBtn.disabled = false;
             stopBtn.disabled = true;
