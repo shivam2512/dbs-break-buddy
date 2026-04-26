@@ -131,7 +131,7 @@ app.post('/add-employee', verifyAdmin, async (req, res) => {
         const result = await pool.query(`
             INSERT INTO employees (emp_id, name)
             VALUES (
-                'EMP' || LPAD(nextval('emp_seq')::text, 3, '0'),
+                'PUN' || LPAD(nextval('emp_seq')::text, 4, '0'),
                 $1
             )
             RETURNING emp_id
