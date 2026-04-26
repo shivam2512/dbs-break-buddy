@@ -195,7 +195,7 @@ app.post('/start', async (req, res) => {
         return res.status(400).json({ error: "Please select a reason" });
     }
 
-    const requiresExtra = ["Personal Work", "Meeting", "Feedback", "Other"];
+    const requiresExtra = ["Personal Work", "Meeting", "Feedback", "Quality Feedback", "Operation Feedback", "Other"];
 
     if (requiresExtra.includes(reason) && (!extra || extra.trim() === "")) {
         return res.status(400).json({ error: "Please enter reason details" });
