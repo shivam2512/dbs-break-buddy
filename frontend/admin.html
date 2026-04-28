@@ -288,6 +288,39 @@ function showLogs(data){
 }
 
 // QUICK FILTERS
+// function quickFilter(type){
+//     let today = new Date();
+//     let fromDate, toDate;
+
+//     if(type==="today"){
+//         fromDate = toDate = today;
+//     }
+//     else if(type==="yesterday"){
+//         let y = new Date();
+//         y.setDate(y.getDate()-1);
+//         fromDate = toDate = y;
+//     }
+//     else if(type==="7days"){
+//         toDate = today;
+//         fromDate = new Date();
+//         fromDate.setDate(today.getDate()-6);
+//     }
+
+//     from.value = fromDate.toISOString().split("T")[0];
+//     to.value = toDate.toISOString().split("T")[0];
+
+//     filterLogs();
+// }
+
+function formatLocalDate(date){
+    let d = new Date(date);
+    let year = d.getFullYear();
+    let month = ("0" + (d.getMonth()+1)).slice(-2);
+    let day = ("0" + d.getDate()).slice(-2);
+
+    return `${year}-${month}-${day}`;
+}
+
 function quickFilter(type){
     let today = new Date();
     let fromDate, toDate;
@@ -306,11 +339,13 @@ function quickFilter(type){
         fromDate.setDate(today.getDate()-6);
     }
 
-    from.value = fromDate.toISOString().split("T")[0];
-    to.value = toDate.toISOString().split("T")[0];
+    // ✅ FIXED HERE (NO UTC)
+    from.value = formatLocalDate(fromDate);
+    to.value = formatLocalDate(toDate);
 
     filterLogs();
 }
+
 
 // RESET
 function resetFilters(){
