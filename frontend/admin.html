@@ -22,8 +22,12 @@ th { background:#333; color:white; }
 button { padding:6px 10px; margin:3px; cursor:pointer; border:none; border-radius:5px; }
 button:hover { opacity:0.9; }
 
-.top-bar { display:flex; justify-content:space-between; align-items:center; }
 .logout { background:red; color:white; }
+.delete-btn { background:#dc3545; color:white; }
+.quick-btn { background:#007bff; color:white; }
+.reset-btn { background:gray; color:white; }
+
+.top-bar { display:flex; justify-content:space-between; align-items:center; }
 
 .filter-bar {
     display:flex;
@@ -31,9 +35,6 @@ button:hover { opacity:0.9; }
     flex-wrap:wrap;
     align-items:center;
 }
-
-.quick-btn { background:#007bff; color:white; }
-.reset-btn { background:gray; color:white; }
 
 .no-data {
     text-align:center;
@@ -162,17 +163,39 @@ function addEmployee(){
     });
 }
 
-// Load employees
+// ✅ Load employees with DELETE
 function loadEmployees(){
     fetch(API+"/employees",{ headers:{ "Authorization": token }})
     .then(r=>r.json())
     .then(data=>{
-        let html="<tr><th>ID</th><th>Name</th></tr>";
+        let html="<tr><th>ID</th><th>Name</th><th>Action</th></tr>";
+
         data.forEach(e=>{
-            html+=`<tr><td>${e.emp_id}</td><td>${e.name}</td></tr>`;
+            html+=`<tr>
+                <td>${e.emp_id}</td>
+                <td>${e.name}</td>
+                <td>
+                    <button class="delete-btn"
+                        onclick="deleteEmp('${e.emp_id}')">
+                        Delete
+                    </button>
+                </td>
+            </tr>`;
         });
+
         empTable.innerHTML=html;
     });
+}
+
+// ✅ Delete employee
+function deleteEmp(id){
+    if(!confirm(`Delete employee ${id}? This cannot be undone.`)) return;
+
+    fetch(API+"/delete-employee/"+id,{
+        method:"DELETE",
+        headers:{ "Authorization": token }
+    })
+    .then(()=> loadEmployees());
 }
 
 // Active breaks
@@ -211,7 +234,7 @@ function forceStop(emp_id){
     });
 }
 
-// 🔥 FILTER LOGS (MAIN)
+// FILTER LOGS
 function filterLogs(){
     fetch(API+"/filter-logs",{
         method:"POST",
@@ -229,41 +252,13 @@ function filterLogs(){
     .then(showLogs);
 }
 
-// 🔥 SHOW LOGS (IMPROVED)
-// function showLogs(data){
+// STORE CURRENT VIEW
+let currentLogs = [];
 
-//     if(!data.length){
-//         logTable.innerHTML = `<tr><td class="no-data">No records found</td></tr>`;
-//         return;
-//     }
-
-//     let html=`<tr>
-//     <th>ID</th><th>Name</th><th>Reason</th>
-//     <th>Extra</th><th>Start</th><th>End</th>
-//     <th>Duration</th><th>Ended By</th>
-//     </tr>`;
-
-//     data.forEach(e=>{
-//         html+=`<tr>
-//         <td>${e.emp_id}</td>
-//         <td>${e.employee_name}</td>
-//         <td>${e.reason}</td>
-//         <td>${e.extra_reason || "-"}</td>
-//         <td>${e.start_time}</td>
-//         <td>${e.end_time||"-"}</td>
-//         <td>${formatDuration(e.duration)}</td>
-//         <td>${e.ended_by || "-"}</td>
-//         </tr>`;
-//     });
-
-//     logTable.innerHTML=html;
-// }
-
-let currentLogs = []; // 🔥 GLOBAL
-
+// SHOW LOGS
 function showLogs(data){
 
-    currentLogs = data; // ✅ store what is displayed
+    currentLogs = data;
 
     if(!data.length){
         logTable.innerHTML = `<tr><td class="no-data">No records found</td></tr>`;
@@ -292,8 +287,7 @@ function showLogs(data){
     logTable.innerHTML=html;
 }
 
-
-// 🔥 QUICK FILTERS
+// QUICK FILTERS
 function quickFilter(type){
     let today = new Date();
     let fromDate, toDate;
@@ -318,7 +312,7 @@ function quickFilter(type){
     filterLogs();
 }
 
-// 🔥 RESET
+// RESET
 function resetFilters(){
     filterEmp.value="";
     from.value="";
@@ -326,19 +320,7 @@ function resetFilters(){
     filterLogs();
 }
 
-// Export CSV
-// function exportCSV(){
-//     fetch(API+"/export",{ headers:{ "Authorization": token }})
-//     .then(res=>res.blob())
-//     .then(blob=>{
-//         let url = URL.createObjectURL(blob);
-//         let a = document.createElement("a");
-//         a.href = url;
-//         a.download = "logs.csv";
-//         a.click();
-//     });
-// }
-
+// CSV EXPORT (VISIBLE DATA ONLY)
 function exportCSV(){
 
     if(!currentLogs.length){
@@ -357,14 +339,14 @@ function exportCSV(){
 
     let a = document.createElement("a");
     a.href = url;
-    a.download = "visible_logs.csv";
+    a.download = "Break_Logs.csv";
     a.click();
 }
 
 // INIT
 loadEmployees();
 loadActive();
-quickFilter("today"); // 🔥 default load today logs
+quickFilter("today");
 
 </script>
 
