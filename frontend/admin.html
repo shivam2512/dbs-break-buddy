@@ -288,14 +288,12 @@ function showLogs(data){
 }
 
 // QUICK FILTERS
-function getISTDate(date) {
+function formatDateLocal(date) {
     let d = new Date(date);
-
-    // Convert to IST manually
-    let ISTOffset = 5.5 * 60 * 60 * 1000;
-    let istDate = new Date(d.getTime() + ISTOffset);
-
-    return istDate.toISOString().split("T")[0];
+    let year = d.getFullYear();
+    let month = ("0" + (d.getMonth() + 1)).slice(-2);
+    let day = ("0" + d.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
 }
 
 function quickFilter(type){
@@ -316,18 +314,9 @@ function quickFilter(type){
         fromDate.setDate(today.getDate()-6);
     }
 
-    // ✅ USE IST DATE
-    from.value = getISTDate(fromDate);
-    to.value = getISTDate(toDate);
+    from.value = formatDateLocal(fromDate);
+    to.value = formatDateLocal(toDate);
 
-    filterLogs();
-}
-
-// RESET
-function resetFilters(){
-    filterEmp.value="";
-    from.value="";
-    to.value="";
     filterLogs();
 }
 

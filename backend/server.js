@@ -292,12 +292,15 @@ app.post('/filter-logs', verifyAdmin, async (req, res) => {
 
     // ✅ IST DATE FIX (CRITICAL CHANGE)
     if (from && to) {
-        params.push(from, to);
-        query += `
-        AND (start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date 
-        BETWEEN $${params.length - 1} AND $${params.length}
-        `;
-    }
+    params.push(from + " 00:00:00", to + " 23:59:59");
+
+    query += `
+    AND (
+        start_time AT TIME ZONE 'Asia/Kolkata'
+        BETWEEN $${params.length-1}::timestamp 
+        AND $${params.length}::timestamp
+    )`;
+}
 
     query += " ORDER BY id DESC";
 
@@ -385,11 +388,14 @@ app.get('/export', verifyAdmin, async (req, res) => {
 
     // ✅ FIXED (IST BASED FILTER)
 if (from && to) {
-    params.push(from, to);
+    params.push(from + " 00:00:00", to + " 23:59:59");
+
     query += `
-    AND (start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date 
-    BETWEEN $${params.length - 1} AND $${params.length}
-    `;
+    AND (
+        start_time AT TIME ZONE 'Asia/Kolkata'
+        BETWEEN $${params.length-1}::timestamp 
+        AND $${params.length}::timestamp
+    )`;
 }
 
     query += " ORDER BY id DESC";
