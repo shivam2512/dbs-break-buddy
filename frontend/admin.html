@@ -312,40 +312,71 @@ function showLogs(data){
 //     filterLogs();
 // }
 
-function formatLocalDate(date){
-    let d = new Date(date);
-    let year = d.getFullYear();
-    let month = ("0" + (d.getMonth()+1)).slice(-2);
-    let day = ("0" + d.getDate()).slice(-2);
+// function formatLocalDate(date){
+//     let d = new Date(date);
+//     let year = d.getFullYear();
+//     let month = ("0" + (d.getMonth()+1)).slice(-2);
+//     let day = ("0" + d.getDate()).slice(-2);
 
-    return `${year}-${month}-${day}`;
+//     return `${year}-${month}-${day}`;
+// }
+
+// function quickFilter(type){
+//     let today = new Date();
+//     let fromDate, toDate;
+
+//     if(type==="today"){
+//         fromDate = toDate = today;
+//     }
+//     else if(type==="yesterday"){
+//         let y = new Date();
+//         y.setDate(y.getDate()-1);
+//         fromDate = toDate = y;
+//     }
+//     else if(type==="7days"){
+//         toDate = today;
+//         fromDate = new Date();
+//         fromDate.setDate(today.getDate()-6);
+//     }
+
+//     // ✅ FIXED HERE (NO UTC)
+//     from.value = formatLocalDate(fromDate);
+//     to.value = formatLocalDate(toDate);
+
+//     filterLogs();
+// }
+
+function formatDateIST(date){
+    let d = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    return d.toISOString().split("T")[0];
 }
 
 function quickFilter(type){
-    let today = new Date();
+    let now = new Date();
+
+    let todayIST = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
     let fromDate, toDate;
 
     if(type==="today"){
-        fromDate = toDate = today;
+        fromDate = toDate = todayIST;
     }
     else if(type==="yesterday"){
-        let y = new Date();
+        let y = new Date(todayIST);
         y.setDate(y.getDate()-1);
         fromDate = toDate = y;
     }
     else if(type==="7days"){
-        toDate = today;
-        fromDate = new Date();
-        fromDate.setDate(today.getDate()-6);
+        toDate = todayIST;
+        fromDate = new Date(todayIST);
+        fromDate.setDate(todayIST.getDate()-6);
     }
 
-    // ✅ FIXED HERE (NO UTC)
-    from.value = formatLocalDate(fromDate);
-    to.value = formatLocalDate(toDate);
+    from.value = formatDateIST(fromDate);
+    to.value = formatDateIST(toDate);
 
     filterLogs();
 }
-
 
 // RESET
 function resetFilters(){
