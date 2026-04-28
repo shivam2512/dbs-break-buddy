@@ -288,92 +288,26 @@ function showLogs(data){
 }
 
 // QUICK FILTERS
-// function quickFilter(type){
-//     let today = new Date();
-//     let fromDate, toDate;
-
-//     if(type==="today"){
-//         fromDate = toDate = today;
-//     }
-//     else if(type==="yesterday"){
-//         let y = new Date();
-//         y.setDate(y.getDate()-1);
-//         fromDate = toDate = y;
-//     }
-//     else if(type==="7days"){
-//         toDate = today;
-//         fromDate = new Date();
-//         fromDate.setDate(today.getDate()-6);
-//     }
-
-//     from.value = fromDate.toISOString().split("T")[0];
-//     to.value = toDate.toISOString().split("T")[0];
-
-//     filterLogs();
-// }
-
-// function formatLocalDate(date){
-//     let d = new Date(date);
-//     let year = d.getFullYear();
-//     let month = ("0" + (d.getMonth()+1)).slice(-2);
-//     let day = ("0" + d.getDate()).slice(-2);
-
-//     return `${year}-${month}-${day}`;
-// }
-
-// function quickFilter(type){
-//     let today = new Date();
-//     let fromDate, toDate;
-
-//     if(type==="today"){
-//         fromDate = toDate = today;
-//     }
-//     else if(type==="yesterday"){
-//         let y = new Date();
-//         y.setDate(y.getDate()-1);
-//         fromDate = toDate = y;
-//     }
-//     else if(type==="7days"){
-//         toDate = today;
-//         fromDate = new Date();
-//         fromDate.setDate(today.getDate()-6);
-//     }
-
-//     // ✅ FIXED HERE (NO UTC)
-//     from.value = formatLocalDate(fromDate);
-//     to.value = formatLocalDate(toDate);
-
-//     filterLogs();
-// }
-
-function formatDateIST(date){
-    let d = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-    return d.toISOString().split("T")[0];
-}
-
 function quickFilter(type){
-    let now = new Date();
-
-    let todayIST = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-
+    let today = new Date();
     let fromDate, toDate;
 
     if(type==="today"){
-        fromDate = toDate = todayIST;
+        fromDate = toDate = today;
     }
     else if(type==="yesterday"){
-        let y = new Date(todayIST);
+        let y = new Date();
         y.setDate(y.getDate()-1);
         fromDate = toDate = y;
     }
     else if(type==="7days"){
-        toDate = todayIST;
-        fromDate = new Date(todayIST);
-        fromDate.setDate(todayIST.getDate()-6);
+        toDate = today;
+        fromDate = new Date();
+        fromDate.setDate(today.getDate()-6);
     }
 
-    from.value = formatDateIST(fromDate);
-    to.value = formatDateIST(toDate);
+    from.value = fromDate.toISOString().split("T")[0];
+    to.value = toDate.toISOString().split("T")[0];
 
     filterLogs();
 }
