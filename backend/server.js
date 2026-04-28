@@ -353,9 +353,9 @@ app.post('/force-stop', verifyAdmin, async (req, res) => {
 //     res.send(csv);
 // });
 
-app.post('/export', verifyAdmin, async (req, res) => {
+app.get('/export', verifyAdmin, async (req, res) => {
 
-    const { emp_id, from, to } = req.body;
+    const { emp_id, from, to } = req.query; // ✅ GET params
 
     function format(sec){
         if(!sec) return "0:00:00";
