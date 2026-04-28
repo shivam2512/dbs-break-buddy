@@ -284,15 +284,22 @@ app.post('/filter-logs', verifyAdmin, async (req, res) => {
     let query = "SELECT * FROM break_logs WHERE 1=1";
     let params = [];
 
+    // ✅ Employee filter
     if (emp_id) {
         params.push(emp_id);
         query += ` AND emp_id=$${params.length}`;
     }
 
+    // ✅ IST DATE FIX (CRITICAL CHANGE)
     if (from && to) {
         params.push(from, to);
-        query += ` AND DATE(start_time) BETWEEN $${params.length-1} AND $${params.length}`;
+        query += `
+        AND (start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date 
+        BETWEEN $${params.length - 1} AND $${params.length}
+        `;
     }
+
+    query += " ORDER BY id DESC";
 
     const r = await pool.query(query, params);
 
@@ -376,11 +383,14 @@ app.get('/export', verifyAdmin, async (req, res) => {
         query += ` AND emp_id=$${params.length}`;
     }
 
-    // ✅ Filter by date
-    if (from && to) {
-        params.push(from, to);
-        query += ` AND DATE(start_time) BETWEEN $${params.length-1} AND $${params.length}`;
-    }
+    // ✅ FIXED (IST BASED FILTER)
+if (from && to) {
+    params.push(from, to);
+    query += `
+    AND (start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date 
+    BETWEEN $${params.length - 1} AND $${params.length}
+    `;
+}
 
     query += " ORDER BY id DESC";
 
