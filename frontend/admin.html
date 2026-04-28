@@ -293,14 +293,37 @@ function resetFilters(){
 }
 
 // Export CSV
+// function exportCSV(){
+//     fetch(API+"/export",{ headers:{ "Authorization": token }})
+//     .then(res=>res.blob())
+//     .then(blob=>{
+//         let url = URL.createObjectURL(blob);
+//         let a = document.createElement("a");
+//         a.href = url;
+//         a.download = "logs.csv";
+//         a.click();
+//     });
+// }
+
 function exportCSV(){
-    fetch(API+"/export",{ headers:{ "Authorization": token }})
+    fetch(API+"/export",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization": token
+        },
+        body:JSON.stringify({
+            emp_id:filterEmp.value,
+            from:from.value,
+            to:to.value
+        })
+    })
     .then(res=>res.blob())
     .then(blob=>{
-        let url = URL.createObjectURL(blob);
+        let url = window.URL.createObjectURL(blob);
         let a = document.createElement("a");
         a.href = url;
-        a.download = "logs.csv";
+        a.download = "filtered_logs.csv";
         a.click();
     });
 }

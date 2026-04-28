@@ -330,7 +330,32 @@ app.post('/force-stop', verifyAdmin, async (req, res) => {
 });
 
 // ================= EXPORT =================
-app.get('/export', verifyAdmin, async (req, res) => {
+// app.get('/export', verifyAdmin, async (req, res) => {
+
+//     function format(sec){
+//         if(!sec) return "0:00:00";
+//         let h = Math.floor(sec / 3600);
+//         let m = Math.floor((sec % 3600) / 60);
+//         let s = sec % 60;
+//         return `${h}:${m}:${s}`;
+//     }
+
+//     const r = await pool.query("SELECT * FROM break_logs");
+
+//     let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration,Ended By\n";
+
+//     r.rows.forEach(row => {
+//         csv += `${row.emp_id},${row.employee_name},${row.reason},${row.extra_reason || ""},"${toIST(row.start_time)}","${toIST(row.end_time)}",${format(row.duration)},${row.ended_by || ""}\n`;
+//     });
+
+//     res.header("Content-Type", "text/csv");
+//     res.attachment("logs.csv");
+//     res.send(csv);
+// });
+
+app.post('/export', verifyAdmin, async (req, res) => {
+
+    const { emp_id, from, to } = req.body;
 
     function format(sec){
         if(!sec) return "0:00:00";
@@ -340,7 +365,24 @@ app.get('/export', verifyAdmin, async (req, res) => {
         return `${h}:${m}:${s}`;
     }
 
-    const r = await pool.query("SELECT * FROM break_logs");
+    let query = "SELECT * FROM break_logs WHERE 1=1";
+    let params = [];
+
+    // ✅ Filter by employee
+    if (emp_id) {
+        params.push(emp_id);
+        query += ` AND emp_id=$${params.length}`;
+    }
+
+    // ✅ Filter by date
+    if (from && to) {
+        params.push(from, to);
+        query += ` AND DATE(start_time) BETWEEN $${params.length-1} AND $${params.length}`;
+    }
+
+    query += " ORDER BY id DESC";
+
+    const r = await pool.query(query, params);
 
     let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration,Ended By\n";
 
@@ -349,7 +391,7 @@ app.get('/export', verifyAdmin, async (req, res) => {
     });
 
     res.header("Content-Type", "text/csv");
-    res.attachment("logs.csv");
+    res.attachment("filtered_logs.csv");
     res.send(csv);
 });
 
