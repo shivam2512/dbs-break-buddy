@@ -288,26 +288,47 @@ function showLogs(data){
 }
 
 // QUICK FILTERS
+function getISTDateString(date){
+    const istDate = new Date(
+        date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    );
+
+    const year = istDate.getFullYear();
+    const month = ("0" + (istDate.getMonth() + 1)).slice(-2);
+    const day = ("0" + istDate.getDate()).slice(-2);
+
+    return `${year}-${month}-${day}`;
+}
+
+
 function quickFilter(type){
-    let today = new Date();
+
+    let now = new Date();
+
+    // ✅ convert current time to IST FIRST
+    let todayIST = new Date(
+        now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    );
+
     let fromDate, toDate;
 
     if(type==="today"){
-        fromDate = toDate = today;
+        fromDate = toDate = new Date(todayIST);
     }
     else if(type==="yesterday"){
-        let y = new Date();
+        let y = new Date(todayIST);
         y.setDate(y.getDate()-1);
         fromDate = toDate = y;
     }
     else if(type==="7days"){
-        toDate = today;
-        fromDate = new Date();
-        fromDate.setDate(today.getDate()-6);
+        toDate = new Date(todayIST);
+        fromDate = new Date(todayIST);
+        fromDate.setDate(fromDate.getDate()-6);
     }
 
-    from.value = fromDate.toISOString().split("T")[0];
-    to.value = toDate.toISOString().split("T")[0];
+    // ✅ use IST formatter (NOT toISOString)
+    from.value = getISTDateString(fromDate);
+    to.value = getISTDateString(toDate);
 
     filterLogs();
 }
