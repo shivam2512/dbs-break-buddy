@@ -288,47 +288,37 @@ function showLogs(data){
 }
 
 // QUICK FILTERS
-function getISTDateString(date){
-    const istDate = new Date(
-        date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-    );
+function getISTDate(date) {
+    let d = new Date(date);
 
-    const year = istDate.getFullYear();
-    const month = ("0" + (istDate.getMonth() + 1)).slice(-2);
-    const day = ("0" + istDate.getDate()).slice(-2);
+    // Convert to IST manually
+    let ISTOffset = 5.5 * 60 * 60 * 1000;
+    let istDate = new Date(d.getTime() + ISTOffset);
 
-    return `${year}-${month}-${day}`;
+    return istDate.toISOString().split("T")[0];
 }
 
-
 function quickFilter(type){
-
-    let now = new Date();
-
-    // ✅ convert current time to IST FIRST
-    let todayIST = new Date(
-        now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-    );
-
+    let today = new Date();
     let fromDate, toDate;
 
     if(type==="today"){
-        fromDate = toDate = new Date(todayIST);
+        fromDate = toDate = today;
     }
     else if(type==="yesterday"){
-        let y = new Date(todayIST);
+        let y = new Date();
         y.setDate(y.getDate()-1);
         fromDate = toDate = y;
     }
     else if(type==="7days"){
-        toDate = new Date(todayIST);
-        fromDate = new Date(todayIST);
-        fromDate.setDate(fromDate.getDate()-6);
+        toDate = today;
+        fromDate = new Date();
+        fromDate.setDate(today.getDate()-6);
     }
 
-    // ✅ use IST formatter (NOT toISOString)
-    from.value = getISTDateString(fromDate);
-    to.value = getISTDateString(toDate);
+    // ✅ USE IST DATE
+    from.value = getISTDate(fromDate);
+    to.value = getISTDate(toDate);
 
     filterLogs();
 }
