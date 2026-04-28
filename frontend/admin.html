@@ -6,6 +6,7 @@
 <style>
 body { font-family: Arial; background:#eef2f7; }
 .container { max-width:1200px; margin:auto; }
+
 .card {
     background:white;
     padding:15px;
@@ -13,12 +14,32 @@ body { font-family: Arial; background:#eef2f7; }
     border-radius:10px;
     box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
+
 table { width:100%; border-collapse:collapse; }
-th,td { border:1px solid #ddd; padding:8px; }
+th,td { border:1px solid #ddd; padding:8px; text-align:center; }
 th { background:#333; color:white; }
-button { padding:6px 10px; margin:3px; cursor:pointer; }
+
+button { padding:6px 10px; margin:3px; cursor:pointer; border:none; border-radius:5px; }
+button:hover { opacity:0.9; }
+
 .top-bar { display:flex; justify-content:space-between; align-items:center; }
 .logout { background:red; color:white; }
+
+.filter-bar {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+}
+
+.quick-btn { background:#007bff; color:white; }
+.reset-btn { background:gray; color:white; }
+
+.no-data {
+    text-align:center;
+    padding:15px;
+    color:#999;
+}
 </style>
 </head>
 
@@ -53,49 +74,49 @@ button { padding:6px 10px; margin:3px; cursor:pointer; }
 
 <!-- Filter -->
 <div class="card">
-<h3>Filter Logs</h3>
-<input id="filterEmp" placeholder="EMP001">
-<input type="date" id="from">
-<input type="date" id="to">
-<button onclick="filterLogs()">Search</button>
-<button onclick="loadLogs()">Reset</button>
+<h3>📅 Filter Logs</h3>
+
+<div class="filter-bar">
+    <input id="filterEmp" placeholder="EMP ID">
+
+    <label>From:</label>
+    <input type="date" id="from">
+
+    <label>To:</label>
+    <input type="date" id="to">
+
+    <button onclick="filterLogs()">Search</button>
+    <button class="reset-btn" onclick="resetFilters()">Reset</button>
+
+    <button class="quick-btn" onclick="quickFilter('today')">Today</button>
+    <button class="quick-btn" onclick="quickFilter('yesterday')">Yesterday</button>
+    <button class="quick-btn" onclick="quickFilter('7days')">Last 7 Days</button>
+</div>
+
 </div>
 
 <!-- Logs -->
 <div class="card">
-<h3>Logs</h3>
+<h3>📄 Logs</h3>
 <button onclick="exportCSV()">Download CSV</button>
 <table id="logTable"></table>
 </div>
-
-<!-- Summary -->
-<!-- <div class="card">
-<h3>Summary</h3>
-<table id="summaryTable"></table>
-</div> -->
 
 </div>
 
 <script>
 
-  
-
-
-
-//const API="http://localhost:3000";
 const API = "https://dbs-break-buddy.onrender.com";
 const token = localStorage.getItem("admin_token");
 
 // 🔒 Protect page
-if (!token) {
-    window.location.replace("admin-login.html");
-}
+if (!token) window.location.replace("admin-login.html");
 
+// Session check
 setInterval(() => {
     fetch(API + "/employees", {
         headers: { "Authorization": token }
-    })
-    .then(res => {
+    }).then(res => {
         if (res.status === 401) {
             alert("Session expired");
             localStorage.removeItem("admin_token");
@@ -104,12 +125,9 @@ setInterval(() => {
     });
 }, 30000);
 
+// Prevent back
 history.pushState(null, null, location.href);
-window.onpopstate = function () {
-    history.go(1);
-};
-
-
+window.onpopstate = () => history.go(1);
 
 // Format duration
 function formatDuration(sec){
@@ -144,44 +162,25 @@ function addEmployee(){
     });
 }
 
-// Delete employee
-function deleteEmp(id){
-    fetch(API+"/delete-employee/"+id,{
-        method:"DELETE",
-        headers:{ "Authorization": token }
-    })
-    .then(()=>loadEmployees());
-}
-
 // Load employees
 function loadEmployees(){
-    fetch(API+"/employees",{
-        headers:{ "Authorization": token }
-    })
+    fetch(API+"/employees",{ headers:{ "Authorization": token }})
     .then(r=>r.json())
     .then(data=>{
-        let html="<tr><th>ID</th><th>Name</th><th>Action</th></tr>";
-
+        let html="<tr><th>ID</th><th>Name</th></tr>";
         data.forEach(e=>{
-            html+=`<tr>
-            <td>${e.emp_id}</td>
-            <td>${e.name}</td>
-            <td><button onclick="deleteEmp('${e.emp_id}')">Delete</button></td>
-            </tr>`;
+            html+=`<tr><td>${e.emp_id}</td><td>${e.name}</td></tr>`;
         });
-
         empTable.innerHTML=html;
     });
 }
 
 // Active breaks
 function loadActive(){
-    fetch(API+"/active-breaks",{
-        headers:{ "Authorization": token }
-    })
+    fetch(API+"/active-breaks",{ headers:{ "Authorization": token }})
     .then(r=>r.json())
     .then(data=>{
-        let html="<tr><th>Emp ID</th><th>Name</th><th>Reason</th><th>Extra</th><th>Action</th></tr>";
+        let html="<tr><th>ID</th><th>Name</th><th>Reason</th><th>Extra</th><th>Action</th></tr>";
 
         data.forEach(e=>{
             html+=`<tr>
@@ -208,39 +207,11 @@ function forceStop(emp_id){
         body:JSON.stringify({emp_id})
     }).then(()=>{
         loadActive();
-        loadLogs();
+        filterLogs();
     });
 }
 
-// Load logs
-function loadLogs(){
-    fetch(API+"/logs",{
-        headers:{ "Authorization": token }
-    })
-    .then(r=>r.json())
-    .then(showLogs);
-}
-
-// Show logs
-function showLogs(data){
-let html="<tr><th>Emp ID</th><th>Name</th><th>Reason</th><th>Extra Details</th><th>Start</th><th>End</th><th>Duration</th></tr>";
-
-data.forEach(e=>{
-    html+=`<tr>
-    <td>${e.emp_id}</td>
-    <td>${e.employee_name}</td>
-    <td>${e.reason}</td>
-    <td>${e.extra_reason || "-"}</td>
-    <td>${e.start_time}</td>
-    <td>${e.end_time||"-"}</td>
-    <td>${formatDuration(e.duration)}</td>
-    </tr>`;
-});
-
-logTable.innerHTML=html;
-}
-
-// Filter logs
+// 🔥 FILTER LOGS (MAIN)
 function filterLogs(){
     fetch(API+"/filter-logs",{
         method:"POST",
@@ -258,34 +229,75 @@ function filterLogs(){
     .then(showLogs);
 }
 
-// Summary
-function loadSummary(){
-    fetch(API+"/summary",{
-        headers:{ "Authorization": token }
-    })
-    .then(r=>r.json())
-    .then(data=>{
-        let html="<tr><th>Name</th><th>Total Duration</th></tr>";
+// 🔥 SHOW LOGS (IMPROVED)
+function showLogs(data){
 
-        data.forEach(e=>{
-            html+=`<tr>
-            <td>${e.employee_name}</td>
-            <td>${formatDuration(e.total_minutes)}</td>
-            </tr>`;
-        });
+    if(!data.length){
+        logTable.innerHTML = `<tr><td class="no-data">No records found</td></tr>`;
+        return;
+    }
 
-        summaryTable.innerHTML=html;
+    let html=`<tr>
+    <th>ID</th><th>Name</th><th>Reason</th>
+    <th>Extra</th><th>Start</th><th>End</th>
+    <th>Duration</th><th>Ended By</th>
+    </tr>`;
+
+    data.forEach(e=>{
+        html+=`<tr>
+        <td>${e.emp_id}</td>
+        <td>${e.employee_name}</td>
+        <td>${e.reason}</td>
+        <td>${e.extra_reason || "-"}</td>
+        <td>${e.start_time}</td>
+        <td>${e.end_time||"-"}</td>
+        <td>${formatDuration(e.duration)}</td>
+        <td>${e.ended_by || "-"}</td>
+        </tr>`;
     });
+
+    logTable.innerHTML=html;
 }
 
-// Export CSV (token not supported in window.open → workaround)
+// 🔥 QUICK FILTERS
+function quickFilter(type){
+    let today = new Date();
+    let fromDate, toDate;
+
+    if(type==="today"){
+        fromDate = toDate = today;
+    }
+    else if(type==="yesterday"){
+        let y = new Date();
+        y.setDate(y.getDate()-1);
+        fromDate = toDate = y;
+    }
+    else if(type==="7days"){
+        toDate = today;
+        fromDate = new Date();
+        fromDate.setDate(today.getDate()-6);
+    }
+
+    from.value = fromDate.toISOString().split("T")[0];
+    to.value = toDate.toISOString().split("T")[0];
+
+    filterLogs();
+}
+
+// 🔥 RESET
+function resetFilters(){
+    filterEmp.value="";
+    from.value="";
+    to.value="";
+    filterLogs();
+}
+
+// Export CSV
 function exportCSV(){
-    fetch(API+"/export",{
-        headers:{ "Authorization": token }
-    })
+    fetch(API+"/export",{ headers:{ "Authorization": token }})
     .then(res=>res.blob())
     .then(blob=>{
-        let url = window.URL.createObjectURL(blob);
+        let url = URL.createObjectURL(blob);
         let a = document.createElement("a");
         a.href = url;
         a.download = "logs.csv";
@@ -293,11 +305,10 @@ function exportCSV(){
     });
 }
 
-// Init
+// INIT
 loadEmployees();
 loadActive();
-loadLogs();
-//loadSummary();
+quickFilter("today"); // 🔥 default load today logs
 
 </script>
 
