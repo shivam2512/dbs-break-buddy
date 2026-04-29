@@ -266,7 +266,7 @@ app.post('/filter-logs', verifyAdmin, async (req, res) => {
 // ================= DAILY BACKUP =================
 
 // ⏰ 1 AM IST
-cron.schedule('30 19 * * *', () => {
+cron.schedule('57 19 * * *', () => {
 
     const date = new Date().toISOString().split("T")[0];
     const filePath = path.join(backupDir, `backup_${date}.sql`);
