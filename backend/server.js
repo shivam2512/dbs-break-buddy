@@ -23,25 +23,13 @@ const pool = new Pool({
 });
 
 // ================= EMAIL CONFIG =================
-// ⚠️ Use Gmail App Password (not your real password)
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: "shivamshinde786@gmail.com",
-        pass: "ikgy hkxv qwfl npim"
+        user: process.env.EMAIL_USER,   // set in Render ENV
+        pass: process.env.EMAIL_PASS    // Gmail App Password
     }
 });
-
-
-const mailOptions = {
-    from: "shivamshinde786@gmail.com",
-    to: "shivam159357@gmail.com",                  // receiver
-    subject: "Daily DB Backup",
-    text: "Backup attached",
-    attachments: [
-        { path: fileName }
-    ]
-};
 
 // ================= BACKUP FOLDER =================
 const backupDir = path.join(__dirname, "backups");
@@ -243,41 +231,10 @@ app.post('/stop', async (req, res) => {
     res.json({ success: true });
 });
 
-// ================= FILTER LOGS =================
-app.post('/filter-logs', verifyAdmin, async (req, res) => {
+// ================= DAILY BACKUP + EMAIL =================
 
-    const { emp_id, from, to } = req.body;
-
-    let query = "SELECT * FROM break_logs WHERE 1=1";
-    let params = [];
-
-    if (emp_id) {
-        params.push(emp_id);
-        query += ` AND emp_id=$${params.length}`;
-    }
-
-    if (from && to) {
-        const fromUTC = new Date(from + "T00:00:00+05:30");
-        const toUTC = new Date(to + "T23:59:59+05:30");
-
-        params.push(fromUTC.toISOString(), toUTC.toISOString());
-
-        query += ` AND start_time BETWEEN $${params.length-1} AND $${params.length}`;
-    }
-
-    const r = await pool.query(query, params);
-
-    res.json(r.rows.map(row => ({
-        ...row,
-        start_time: toIST(row.start_time),
-        end_time: toIST(row.end_time)
-    })));
-});
-
-// ================= DAILY BACKUP =================
-
-// ⏰ 1 AM IST
-cron.schedule('59 19 * * *', () => {
+// ⏰ 1:26 AM IST = 7:56 PM UTC
+cron.schedule('9 20 * * *', () => {
 
     const date = new Date().toISOString().split("T")[0];
     const filePath = path.join(backupDir, `backup_${date}.sql`);
@@ -293,15 +250,20 @@ cron.schedule('59 19 * * *', () => {
             return;
         }
 
-        console.log("✅ Backup created");
+        console.log("✅ Backup created:", filePath);
 
         try {
             await transporter.sendMail({
-                from: "your-email@gmail.com",
-                to: "your-email@gmail.com",
-                subject: "DB Backup",
-                text: "Attached backup file",
-                attachments: [{ path: filePath }]
+                from: process.env.EMAIL_USER,
+                to: process.env.EMAIL_TO,   // receiver email
+                subject: `DB Backup - ${date}`,
+                text: "Daily DB backup attached",
+                attachments: [
+                    {
+                        filename: `backup_${date}.sql`,
+                        path: filePath
+                    }
+                ]
             });
 
             console.log("📧 Email sent");
@@ -310,8 +272,13 @@ cron.schedule('59 19 * * *', () => {
             console.error("❌ Email failed:", e);
         }
 
-        fs.unlinkSync(filePath);
-        console.log("🗑 File deleted");
+        // delete file after sending
+        try {
+            fs.unlinkSync(filePath);
+            console.log("🗑 Backup deleted");
+        } catch (e) {
+            console.error("Delete failed:", e);
+        }
 
     });
 
