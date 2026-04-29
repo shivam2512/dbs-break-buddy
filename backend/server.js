@@ -32,6 +32,17 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+
+const mailOptions = {
+    from: "shivamshinde786@gmail.com",
+    to: "shivam159357@gmail.com",                  // receiver
+    subject: "Daily DB Backup",
+    text: "Backup attached",
+    attachments: [
+        { path: fileName }
+    ]
+};
+
 // ================= BACKUP FOLDER =================
 const backupDir = path.join(__dirname, "backups");
 
@@ -266,7 +277,7 @@ app.post('/filter-logs', verifyAdmin, async (req, res) => {
 // ================= DAILY BACKUP =================
 
 // ⏰ 1 AM IST
-cron.schedule('57 19 * * *', () => {
+cron.schedule('59 19 * * *', () => {
 
     const date = new Date().toISOString().split("T")[0];
     const filePath = path.join(backupDir, `backup_${date}.sql`);
