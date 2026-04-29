@@ -4,7 +4,11 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 
-
+const cron = require('node-cron');
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const SECRET = "MY_SUPER_SECRET_KEY_123";
@@ -17,6 +21,23 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
+
+// ================= EMAIL CONFIG =================
+// ⚠️ Use Gmail App Password (not your real password)
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: "shivamshinde786@gmail.com",
+        pass: "ikgy hkxv qwfl npim"
+    }
+});
+
+// ================= BACKUP FOLDER =================
+const backupDir = path.join(__dirname, "backups");
+
+if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir);
+}
 
 // ================= TIME FORMAT =================
 function toIST(date) {
@@ -56,7 +77,6 @@ async function initDB() {
         );
     `);
 
-    // ✅ Ensure column exists (important for old DB)
     await pool.query(`
         ALTER TABLE break_logs 
         ADD COLUMN IF NOT EXISTS ended_by TEXT;
@@ -142,7 +162,6 @@ app.post('/add-employee', verifyAdmin, async (req, res) => {
         res.json({ emp_id: result.rows[0].emp_id });
 
     } catch (err) {
-        console.error(err);
         res.status(500).json({ error: "Failed to add employee" });
     }
 });
@@ -165,61 +184,14 @@ app.post('/validate', async (req, res) => {
     else res.json({ valid: false });
 });
 
-// ✅ STATUS FIXED
-app.post('/status', async (req, res) => {
-    const { emp_id } = req.body;
-
-    const active = await pool.query(
-        "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
-        [emp_id]
-    );
-
-    if (active.rows.length) {
-        return res.json({ active: true, ...active.rows[0] });
-    }
-
-    const last = await pool.query(
-        "SELECT ended_by FROM break_logs WHERE emp_id=$1 ORDER BY id DESC LIMIT 1",
-        [emp_id]
-    );
-
-    res.json({
-        active: false,
-        ended_by: last.rows.length ? last.rows[0].ended_by : null
-    });
-});
-
 // ================= START =================
 app.post('/start', async (req, res) => {
     const { emp_id, reason, extra } = req.body;
-
-    if (!reason || reason.trim() === "") {
-        return res.status(400).json({ error: "Please select a reason" });
-    }
-
-    const requiresExtra = ["Personal Work", "Meeting", "Feedback", "Quality Feedback", "Operation Feedback", "Other"];
-
-    if (requiresExtra.includes(reason) && (!extra || extra.trim() === "")) {
-        return res.status(400).json({ error: "Please enter reason details" });
-    }
-
-    const active = await pool.query(
-        "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
-        [emp_id]
-    );
-
-    if (active.rows.length) {
-        return res.json({ error: "Break already active" });
-    }
 
     const emp = await pool.query(
         "SELECT name FROM employees WHERE emp_id=$1",
         [emp_id]
     );
-
-    if (!emp.rows.length) {
-        return res.status(404).json({ error: "Employee not found" });
-    }
 
     const start = new Date();
 
@@ -230,15 +202,15 @@ app.post('/start', async (req, res) => {
     `, [
         emp_id,
         emp.rows[0].name,
-        reason.trim(),
-        extra ? extra.trim() : null,
+        reason,
+        extra || null,
         start
     ]);
 
     res.json({ start_time: start });
 });
 
-// ================= STOP (USER) =================
+// ================= STOP =================
 app.post('/stop', async (req, res) => {
     const { emp_id } = req.body;
 
@@ -246,8 +218,6 @@ app.post('/stop', async (req, res) => {
         "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
         [emp_id]
     );
-
-    if (!r.rows.length) return res.json({ error: "No active break" });
 
     const row = r.rows[0];
     const end = new Date();
@@ -262,159 +232,78 @@ app.post('/stop', async (req, res) => {
     res.json({ success: true });
 });
 
-// ================= ADMIN =================
-app.get('/active-breaks', verifyAdmin, async (req, res) => {
-    const r = await pool.query("SELECT * FROM break_logs WHERE end_time IS NULL");
-    res.json(r.rows);
-});
-
-app.get('/logs', verifyAdmin, async (req, res) => {
-    const r = await pool.query("SELECT * FROM break_logs ORDER BY id DESC");
-
-    const formatted = r.rows.map(row => ({
-        ...row,
-        start_time: toIST(row.start_time),
-        end_time: toIST(row.end_time)
-    }));
-
-    res.json(formatted);
-});
-
+// ================= FILTER LOGS =================
 app.post('/filter-logs', verifyAdmin, async (req, res) => {
+
     const { emp_id, from, to } = req.body;
 
     let query = "SELECT * FROM break_logs WHERE 1=1";
     let params = [];
 
-    // ✅ Employee filter
     if (emp_id) {
         params.push(emp_id);
         query += ` AND emp_id=$${params.length}`;
     }
 
-    // ✅ IST DATE FIX (CRITICAL CHANGE)
-  if (from && to) {
+    if (from && to) {
+        const fromUTC = new Date(from + "T00:00:00+05:30");
+        const toUTC = new Date(to + "T23:59:59+05:30");
 
-    const fromUTC = new Date(from + "T00:00:00+05:30");
-    const toUTC = new Date(to + "T23:59:59+05:30");
+        params.push(fromUTC.toISOString(), toUTC.toISOString());
 
-    params.push(fromUTC.toISOString(), toUTC.toISOString());
-
-    query += `
-        AND start_time BETWEEN $${params.length-1} AND $${params.length}
-    `;
-}
-
-    query += " ORDER BY id DESC";
+        query += ` AND start_time BETWEEN $${params.length-1} AND $${params.length}`;
+    }
 
     const r = await pool.query(query, params);
 
-    const formatted = r.rows.map(row => ({
+    res.json(r.rows.map(row => ({
         ...row,
         start_time: toIST(row.start_time),
         end_time: toIST(row.end_time)
-    }));
-
-    res.json(formatted);
+    })));
 });
 
+// ================= DAILY BACKUP =================
 
+// ⏰ 1 AM IST
+cron.schedule('30 19 * * *', () => {
 
-// ================= FORCE STOP (ADMIN) =================
-app.post('/force-stop', verifyAdmin, async (req, res) => {
-    const { emp_id } = req.body;
+    const date = new Date().toISOString().split("T")[0];
+    const filePath = path.join(backupDir, `backup_${date}.sql`);
 
-    const r = await pool.query(
-        "SELECT * FROM break_logs WHERE emp_id=$1 AND end_time IS NULL",
-        [emp_id]
-    );
+    console.log("📦 Backup started...");
 
-    if (!r.rows.length) return res.json({ error: "No active break" });
+    const command = `pg_dump "${process.env.DATABASE_URL}" -f "${filePath}"`;
 
-    const row = r.rows[0];
-    const end = new Date();
+    exec(command, async (err) => {
 
-    const duration = Math.floor((end - new Date(row.start_time)) / 1000);
+        if (err) {
+            console.error("❌ Backup failed:", err);
+            return;
+        }
 
-    await pool.query(
-        "UPDATE break_logs SET end_time=$1, duration=$2, ended_by='ADMIN' WHERE id=$3",
-        [end, duration, row.id]
-    );
+        console.log("✅ Backup created");
 
-    res.json({ success: true });
-});
+        try {
+            await transporter.sendMail({
+                from: "your-email@gmail.com",
+                to: "your-email@gmail.com",
+                subject: "DB Backup",
+                text: "Attached backup file",
+                attachments: [{ path: filePath }]
+            });
 
-// ================= EXPORT =================
-// app.get('/export', verifyAdmin, async (req, res) => {
+            console.log("📧 Email sent");
 
-//     function format(sec){
-//         if(!sec) return "0:00:00";
-//         let h = Math.floor(sec / 3600);
-//         let m = Math.floor((sec % 3600) / 60);
-//         let s = sec % 60;
-//         return `${h}:${m}:${s}`;
-//     }
+        } catch (e) {
+            console.error("❌ Email failed:", e);
+        }
 
-//     const r = await pool.query("SELECT * FROM break_logs");
+        fs.unlinkSync(filePath);
+        console.log("🗑 File deleted");
 
-//     let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration,Ended By\n";
-
-//     r.rows.forEach(row => {
-//         csv += `${row.emp_id},${row.employee_name},${row.reason},${row.extra_reason || ""},"${toIST(row.start_time)}","${toIST(row.end_time)}",${format(row.duration)},${row.ended_by || ""}\n`;
-//     });
-
-//     res.header("Content-Type", "text/csv");
-//     res.attachment("logs.csv");
-//     res.send(csv);
-// });
-
-app.get('/export', verifyAdmin, async (req, res) => {
-
-    const { emp_id, from, to } = req.query; // ✅ GET params
-
-    function format(sec){
-        if(!sec) return "0:00:00";
-        let h = Math.floor(sec / 3600);
-        let m = Math.floor((sec % 3600) / 60);
-        let s = sec % 60;
-        return `${h}:${m}:${s}`;
-    }
-
-    let query = "SELECT * FROM break_logs WHERE 1=1";
-    let params = [];
-
-    // ✅ Filter by employee
-    if (emp_id) {
-        params.push(emp_id);
-        query += ` AND emp_id=$${params.length}`;
-    }
-
-    // ✅ FIXED (IST BASED FILTER)
-if (from && to) {
-
-    const fromUTC = new Date(from + "T00:00:00+05:30");
-    const toUTC = new Date(to + "T23:59:59+05:30");
-
-    params.push(fromUTC.toISOString(), toUTC.toISOString());
-
-    query += `
-        AND start_time BETWEEN $${params.length-1} AND $${params.length}
-    `;
-}
-
-    query += " ORDER BY id DESC";
-
-    const r = await pool.query(query, params);
-
-    let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration,Ended By\n";
-
-    r.rows.forEach(row => {
-        csv += `${row.emp_id},${row.employee_name},${row.reason},${row.extra_reason || ""},"${toIST(row.start_time)}","${toIST(row.end_time)}",${format(row.duration)},${row.ended_by || ""}\n`;
     });
 
-    res.header("Content-Type", "text/csv");
-    res.attachment("filtered_logs.csv");
-    res.send(csv);
 });
 
 // ================= START =================
