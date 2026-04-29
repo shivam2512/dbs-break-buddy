@@ -4,6 +4,10 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 
+const cron = require('node-cron');
+const { exec } = require('child_process');
+const fs = require('fs');
+
 const app = express();
 const SECRET = "MY_SUPER_SECRET_KEY_123";
 
@@ -417,4 +421,57 @@ if (from && to) {
 
 // ================= START =================
 const PORT = process.env.PORT || 3000;
+
+// ================= DAILY DB BACKUP =================
+
+// ================= DAILY DB BACKUP =================
+
+const path = require('path');
+
+// Ensure backup folder exists
+const backupDir = path.join(__dirname, "backups");
+
+if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir);
+}
+
+// Runs at 1 AM IST (7:30 PM UTC)
+cron.schedule('20 20 * * *', () => {
+
+    const date = new Date().toISOString().split("T")[0];
+    const fileName = path.join(backupDir, `backup_${date}.sql`);
+
+    console.log("📦 Starting DB backup...");
+
+    const command = `pg_dump "${process.env.DATABASE_URL}" -F p -f "${fileName}"`;
+
+    exec(command, (err, stdout, stderr) => {
+
+        if (err) {
+            console.error("❌ Backup failed:", err.message);
+            console.error("STDERR:", stderr);
+            return;
+        }
+
+        console.log("✅ Backup saved:", fileName);
+
+        // 🗑 Delete old backups (>7 days)
+        fs.readdirSync(backupDir).forEach(file => {
+
+            const filePath = path.join(backupDir, file);
+            const stats = fs.statSync(filePath);
+
+            const daysOld = (Date.now() - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+
+            if (daysOld > 7) {
+                fs.unlinkSync(filePath);
+                console.log("🗑 Deleted old backup:", file);
+            }
+
+        });
+
+    });
+
+});
+
 app.listen(PORT, () => console.log("🚀 Server running on port", PORT));
