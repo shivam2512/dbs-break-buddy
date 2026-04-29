@@ -234,7 +234,7 @@ app.post('/stop', async (req, res) => {
 // ================= DAILY BACKUP + EMAIL =================
 
 // ⏰ 1:26 AM IST = 7:56 PM UTC
-cron.schedule('14 20 * * *', () => {
+cron.schedule('17 20 * * *', () => {
 
     const date = new Date().toISOString().split("T")[0];
     const filePath = path.join(backupDir, `backup_${date}.sql`);
