@@ -1,354 +1,700 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Admin Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Break Buddy</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-<style>
-body { font-family: Arial; background:#eef2f7; }
-.container { max-width:1200px; margin:auto; }
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #8b5cf6;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #0ea5e9;
+        }
 
-.card {
-    background:white;
-    padding:15px;
-    margin:15px;
-    border-radius:10px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.1);
-}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-table { width:100%; border-collapse:collapse; }
-th,td { border:1px solid #ddd; padding:8px; text-align:center; }
-th { background:#333; color:white; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
 
-button { padding:6px 10px; margin:3px; cursor:pointer; border:none; border-radius:5px; }
-button:hover { opacity:0.9; }
+        /* Top Bar */
+        .top-bar {
+            background: white;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
 
-.logout { background:red; color:white; }
-.delete-btn { background:#dc3545; color:white; }
-.quick-btn { background:#007bff; color:white; }
-.reset-btn { background:gray; color:white; }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 22px;
+            color: var(--primary);
+        }
 
-.top-bar { display:flex; justify-content:space-between; align-items:center; }
+        .brand i { width: 28px; height: 28px; }
 
-.filter-bar {
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-}
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
 
-.no-data {
-    text-align:center;
-    padding:15px;
-    color:#999;
-}
-</style>
+        .btn-logout {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            background: transparent;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-main);
+        }
+
+        /* Stats Section */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon.blue { background: #eff6ff; color: #3b82f6; }
+        .stat-icon.green { background: #ecfdf5; color: #10b981; }
+        .stat-icon.orange { background: #fff7ed; color: #f59e0b; }
+
+        .stat-info h4 { font-size: 14px; color: var(--text-muted); margin-bottom: 4px; }
+        .stat-info p { font-size: 24px; font-weight: 700; color: var(--text-main); }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            padding: 12px 16px;
+            background: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        tr:hover td {
+            background-color: #f1f5f9;
+        }
+
+        /* Status Pills */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .pill-success { background: #ecfdf5; color: #065f46; }
+        .pill-danger { background: #fef2f2; color: #991b1b; }
+        .pill-info { background: #eff6ff; color: #1e40af; }
+        .pill-warning { background: #fffbeb; color: #92400e; }
+
+        /* Buttons */
+        .btn-sm {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-delete { background: #fee2e2; color: #dc2626; }
+        .btn-delete:hover { background: #ef4444; color: white; }
+
+        .btn-action { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        .btn-action:hover { background: #e2e8f0; }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        /* Filters */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus { border-color: var(--primary); }
+
+        .quick-filters {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn-quick {
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .btn-quick:hover { background: #e2e8f0; color: #1e293b; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid { grid-template-columns: 1fr; }
+            .col-8, .col-4 { grid-column: span 12; }
+        }
+
+        .col-8 { grid-column: span 8; }
+        .col-4 { grid-column: span 4; }
+        .col-12 { grid-column: span 12; }
+
+    </style>
 </head>
-
 <body>
 
-<div class="container">
+    <div class="top-bar">
+        <div class="brand">
+            <i data-lucide="bar-chart-3"></i>
+            Break Buddy Admin
+        </div>
+        <div class="user-actions">
+            <span style="font-size: 14px; color: var(--text-muted);">Admin Panel v2.0</span>
+            <button class="btn-logout" onclick="logout()">
+                <i data-lucide="log-out"></i> Logout
+            </button>
+        </div>
+    </div>
 
-<div class="top-bar">
-<h2>📊 Admin Dashboard</h2>
-<button class="logout" onclick="logout()">Logout</button>
-</div>
+    <div class="container">
+        
+        <!-- Stats Summary -->
+        <div class="stats-grid">
+            <div class="stat-card animate__animated animate__fadeIn">
+                <div class="stat-icon blue">
+                    <i data-lucide="users"></i>
+                </div>
+                <div class="stat-info">
+                    <h4>Total Employees</h4>
+                    <p id="totalEmpCount">0</p>
+                </div>
+            </div>
+            <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.1s">
+                <div class="stat-icon green">
+                    <i data-lucide="coffee"></i>
+                </div>
+                <div class="stat-info">
+                    <h4>Active Breaks</h4>
+                    <p id="activeBreakCount">0</p>
+                </div>
+            </div>
+            <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.2s">
+                <div class="stat-icon orange">
+                    <i data-lucide="history"></i>
+                </div>
+                <div class="stat-info">
+                    <h4>Total Logs Today</h4>
+                    <p id="todayLogCount">0</p>
+                </div>
+            </div>
+        </div>
 
-<!-- Add Employee -->
-<div class="card">
-<h3>Add Employee</h3>
-<input id="empName" placeholder="Enter name">
-<button onclick="addEmployee()">Add</button>
-<p id="msg"></p>
-</div>
+        <div class="grid">
+            
+            <!-- Active Breaks -->
+            <div class="card col-8 animate__animated animate__fadeIn">
+                <h3><i data-lucide="radio"></i> Live Active Breaks</h3>
+                <div class="table-container">
+                    <table id="activeTable">
+                        <thead>
+                            <tr>
+                                <th>Emp ID</th>
+                                <th>Name</th>
+                                <th>Reason</th>
+                                <th>Extra Info</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-<!-- Employees -->
-<div class="card">
-<h3>Employees</h3>
-<table id="empTable"></table>
-</div>
+            <!-- Add Employee -->
+            <div class="card col-4 animate__animated animate__fadeIn">
+                <h3><i data-lucide="user-plus"></i> Add New Employee</h3>
+                <div class="input-group" style="margin-bottom: 16px;">
+                    <label>Employee Full Name</label>
+                    <input id="newEmpName" placeholder="Enter name here...">
+                </div>
+                <button class="btn-primary btn-sm" style="width: 100%; padding: 12px;" onclick="addEmployee()">
+                    <i data-lucide="plus-circle"></i> Create Employee
+                </button>
+                <p id="addMsg" style="margin-top: 12px; font-size: 13px; text-align: center;"></p>
+            </div>
 
-<!-- Active -->
-<div class="card">
-<h3>Active Breaks</h3>
-<table id="activeTable"></table>
-</div>
+            <!-- Employee List -->
+            <div class="card col-4 animate__animated animate__fadeIn">
+                <h3><i data-lucide="list"></i> Employee Directory</h3>
+                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                    <table id="empTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="empBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-<!-- Filter -->
-<div class="card">
-<h3>📅 Filter Logs</h3>
-
-<div class="filter-bar">
-    <input id="filterEmp" placeholder="EMP ID">
-
-    <label>From:</label>
-    <input type="date" id="from">
-
-    <label>To:</label>
-    <input type="date" id="to">
-
-    <button onclick="filterLogs()">Search</button>
-    <button class="reset-btn" onclick="resetFilters()">Reset</button>
-
-    <button class="quick-btn" onclick="quickFilter('today')">Today</button>
-    <button class="quick-btn" onclick="quickFilter('yesterday')">Yesterday</button>
-    <button class="quick-btn" onclick="quickFilter('7days')">Last 7 Days</button>
-</div>
-
-</div>
-
-<!-- Logs -->
-<div class="card">
-<h3>📄 Logs</h3>
-<button onclick="exportCSV()">Download CSV</button>
-<table id="logTable"></table>
-</div>
-
-</div>
-
-<script>
-
-const API = "https://dbs-break-buddy-jm0m.onrender.com";
-const token = localStorage.getItem("admin_token");
-
-// 🔒 Protect page
-if (!token) window.location.replace("admin-login.html");
-
-// Session check
-setInterval(() => {
-    fetch(API + "/employees", {
-        headers: { "Authorization": token }
-    }).then(res => {
-        if (res.status === 401) {
-            alert("Session expired");
-            localStorage.removeItem("admin_token");
-            window.location.replace("admin-login.html");
-        }
-    });
-}, 30000);
-
-// Prevent back
-history.pushState(null, null, location.href);
-window.onpopstate = () => history.go(1);
-
-// Format duration
-function formatDuration(sec){
-    if(!sec) return "-";
-    let h = Math.floor(sec / 3600);
-    let m = Math.floor((sec % 3600) / 60);
-    let s = sec % 60;
-    return `${h}:${("0"+m).slice(-2)}:${("0"+s).slice(-2)}`;
-}
-
-// Logout
-function logout(){
-    localStorage.removeItem("admin_token");
-    window.location.href="admin-login.html";
-}
-
-// Add employee
-function addEmployee(){
-    fetch(API+"/add-employee",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization": token
-        },
-        body:JSON.stringify({name:empName.value})
-    })
-    .then(r=>r.json())
-    .then(d=>{
-        msg.innerText="Created: "+d.emp_id;
-        empName.value="";
-        loadEmployees();
-    });
-}
-
-// ✅ Load employees with DELETE
-function loadEmployees(){
-    fetch(API+"/employees",{ headers:{ "Authorization": token }})
-    .then(r=>r.json())
-    .then(data=>{
-        let html="<tr><th>ID</th><th>Name</th><th>Action</th></tr>";
-
-        data.forEach(e=>{
-            html+=`<tr>
-                <td>${e.emp_id}</td>
-                <td>${e.name}</td>
-                <td>
-                    <button class="delete-btn"
-                        onclick="deleteEmp('${e.emp_id}')">
-                        Delete
+            <!-- Filters & Logs -->
+            <div class="card col-8 animate__animated animate__fadeIn">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <h3><i data-lucide="file-text"></i> Break Logs History</h3>
+                    <button class="btn-action btn-sm" onclick="exportCSV()">
+                        <i data-lucide="download"></i> Export CSV
                     </button>
-                </td>
-            </tr>`;
-        });
+                </div>
 
-        empTable.innerHTML=html;
-    });
-}
+                <div class="filter-grid">
+                    <div class="input-group">
+                        <label>Filter ID</label>
+                        <input id="filterEmp" placeholder="Any ID">
+                    </div>
+                    <div class="input-group">
+                        <label>From Date</label>
+                        <input type="date" id="fromDate">
+                    </div>
+                    <div class="input-group">
+                        <label>To Date</label>
+                        <input type="date" id="toDate">
+                    </div>
+                    <button class="btn-primary btn-sm" style="padding: 10px 20px;" onclick="filterLogs()">
+                        <i data-lucide="search"></i> Search
+                    </button>
+                </div>
 
-// ✅ Delete employee
-function deleteEmp(id){
-    if(!confirm(`Delete employee ${id}? This cannot be undone.`)) return;
+                <div class="quick-filters">
+                    <button class="btn-quick" onclick="quickFilter('today')">Today</button>
+                    <button class="btn-quick" onclick="quickFilter('yesterday')">Yesterday</button>
+                    <button class="btn-quick" onclick="quickFilter('7days')">Last 7 Days</button>
+                    <button class="btn-quick" style="background: #fee2e2; border-color: #fecaca;" onclick="resetFilters()">Clear</button>
+                </div>
 
-    fetch(API+"/delete-employee/"+id,{
-        method:"DELETE",
-        headers:{ "Authorization": token }
-    })
-    .then(()=> loadEmployees());
-}
+                <div class="table-container" style="margin-top: 24px;">
+                    <table id="logTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Reason</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Duration</th>
+                                <th>By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-// Active breaks
-function loadActive(){
-    fetch(API+"/active-breaks",{ headers:{ "Authorization": token }})
-    .then(r=>r.json())
-    .then(data=>{
-        let html="<tr><th>ID</th><th>Name</th><th>Reason</th><th>Extra</th><th>Action</th></tr>";
+        </div>
+    </div>
 
-        data.forEach(e=>{
-            html+=`<tr>
-            <td>${e.emp_id}</td>
-            <td>${e.employee_name}</td>
-            <td>${e.reason}</td>
-            <td>${e.extra_reason || "-"}</td>
-            <td><button onclick="forceStop('${e.emp_id}')">Force Stop</button></td>
-            </tr>`;
-        });
+    <script>
+        const API = "https://dbs-break-buddy-jm0m.onrender.com";
+        const token = localStorage.getItem("admin_token");
 
-        activeTable.innerHTML=html;
-    });
-}
+        // 🔒 Protect page
+        if (!token) window.location.replace("admin-login.html");
 
-// Force stop
-function forceStop(emp_id){
-    fetch(API+"/force-stop",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization": token
-        },
-        body:JSON.stringify({emp_id})
-    }).then(()=>{
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Session check
+        setInterval(() => {
+            fetch(API + "/employees", {
+                headers: { "Authorization": token }
+            }).then(res => {
+                if (res.status === 401) {
+                    alert("Session expired");
+                    localStorage.removeItem("admin_token");
+                    window.location.replace("admin-login.html");
+                }
+            });
+        }, 60000);
+
+        // Prevent back
+        history.pushState(null, null, location.href);
+        window.onpopstate = () => history.go(1);
+
+        function formatDuration(sec){
+            if(!sec) return "-";
+            let h = Math.floor(sec / 3600);
+            let m = Math.floor((sec % 3600) / 60);
+            let s = sec % 60;
+            return `${h}h ${("0"+m).slice(-2)}m ${("0"+s).slice(-2)}s`;
+        }
+
+        function logout(){
+            localStorage.removeItem("admin_token");
+            window.location.href="admin-login.html";
+        }
+
+        function addEmployee(){
+            const name = document.getElementById("newEmpName").value.trim();
+            if(!name) return;
+
+            fetch(API + "/add-employee", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": token
+                },
+                body: JSON.stringify({ name })
+            })
+            .then(r => r.json())
+            .then(d => {
+                document.getElementById("addMsg").innerHTML = `<span style="color: var(--success)">Success! ID: <strong>${d.emp_id}</strong></span>`;
+                document.getElementById("newEmpName").value = "";
+                loadEmployees();
+            });
+        }
+
+        function loadEmployees(){
+            fetch(API + "/employees", { headers: { "Authorization": token }})
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById("totalEmpCount").innerText = data.length;
+                let html = "";
+                data.forEach(e => {
+                    html += `<tr>
+                        <td><span class="pill pill-info">${e.emp_id}</span></td>
+                        <td style="font-weight: 500">${e.name}</td>
+                        <td>
+                            <button class="btn-sm btn-delete" onclick="deleteEmp('${e.emp_id}')">
+                                <i data-lucide="trash-2" style="width:14px"></i> Delete
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+                document.getElementById("empBody").innerHTML = html;
+                lucide.createIcons();
+            });
+        }
+
+        function deleteEmp(id){
+            if(!confirm(`Delete employee ${id}? This cannot be undone.`)) return;
+            fetch(API + "/delete-employee/" + id, {
+                method: "DELETE",
+                headers: { "Authorization": token }
+            })
+            .then(() => loadEmployees());
+        }
+
+        function loadActive(){
+            fetch(API + "/active-breaks", { headers: { "Authorization": token }})
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById("activeBreakCount").innerText = data.length;
+                let html = "";
+                if(data.length === 0) {
+                    html = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 40px;">No active breaks right now</td></tr>';
+                } else {
+                    data.forEach(e => {
+                        html += `<tr>
+                            <td><span class="pill pill-info">${e.emp_id}</span></td>
+                            <td style="font-weight: 600">${e.employee_name}</td>
+                            <td><span class="pill pill-success">${e.reason}</span></td>
+                            <td style="font-size: 12px; color: var(--text-muted)">${e.extra_reason || "-"}</td>
+                            <td>
+                                <button class="btn-sm btn-delete" onclick="forceStop('${e.emp_id}')">
+                                    <i data-lucide="stop-circle" style="width:14px"></i> Force Stop
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                document.getElementById("activeBody").innerHTML = html;
+                lucide.createIcons();
+            });
+        }
+
+        function forceStop(emp_id){
+            fetch(API + "/force-stop", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": token
+                },
+                body: JSON.stringify({ emp_id })
+            }).then(() => {
+                loadActive();
+                filterLogs();
+            });
+        }
+
+        let currentLogs = [];
+
+        function filterLogs(){
+            const emp_id = document.getElementById("filterEmp").value;
+            const from = document.getElementById("fromDate").value;
+            const to = document.getElementById("toDate").value;
+
+            fetch(API + "/filter-logs", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": token
+                },
+                body: JSON.stringify({ emp_id, from, to })
+            })
+            .then(r => r.json())
+            .then(showLogs);
+        }
+
+        function showLogs(data){
+            currentLogs = data;
+            
+            // If it's "today's" quick filter, update the stat card
+            const todayStr = new Date().toISOString().split('T')[0];
+            const isToday = document.getElementById("fromDate").value === todayStr;
+            if(isToday) document.getElementById("todayLogCount").innerText = data.length;
+
+            let html = "";
+            if(!data.length){
+                html = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 40px;">No records found</td></tr>';
+            } else {
+                data.forEach(e => {
+                    const durationClass = e.duration > 3600 ? 'pill-danger' : (e.duration > 1800 ? 'pill-warning' : 'pill-info');
+                    html += `<tr>
+                        <td><span class="pill pill-info">${e.emp_id}</span></td>
+                        <td style="font-weight: 500">${e.employee_name}</td>
+                        <td>${e.reason}</td>
+                        <td style="font-size: 12px">${new Date(e.start_time).toLocaleString()}</td>
+                        <td style="font-size: 12px">${e.end_time ? new Date(e.end_time).toLocaleString() : "-"}</td>
+                        <td><span class="pill ${durationClass}">${formatDuration(e.duration)}</span></td>
+                        <td><span class="pill ${e.ended_by === 'ADMIN' ? 'pill-danger' : 'pill-success'}">${e.ended_by || "USER"}</span></td>
+                    </tr>`;
+                });
+            }
+            document.getElementById("logBody").innerHTML = html;
+        }
+
+        function formatDateLocal(date) {
+            let d = new Date(date);
+            let year = d.getFullYear();
+            let month = ("0" + (d.getMonth() + 1)).slice(-2);
+            let day = ("0" + d.getDate()).slice(-2);
+            return `${year}-${month}-${day}`;
+        }
+
+        function quickFilter(type){
+            let today = new Date();
+            let fromDate, toDate;
+
+            if(type === "today"){
+                fromDate = toDate = today;
+            } else if(type === "yesterday"){
+                let y = new Date();
+                y.setDate(y.getDate() - 1);
+                fromDate = toDate = y;
+            } else if(type === "7days"){
+                toDate = today;
+                fromDate = new Date();
+                fromDate.setDate(today.getDate() - 6);
+            }
+
+            document.getElementById("fromDate").value = formatDateLocal(fromDate);
+            document.getElementById("toDate").value = formatDateLocal(toDate);
+            filterLogs();
+        }
+
+        function resetFilters(){
+            document.getElementById("filterEmp").value = "";
+            document.getElementById("fromDate").value = "";
+            document.getElementById("toDate").value = "";
+            filterLogs();
+        }
+
+        function exportCSV(){
+            if(!currentLogs.length){
+                alert("No data to export");
+                return;
+            }
+            let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration,Ended By\n";
+            currentLogs.forEach(e => {
+                csv += `${e.emp_id},${e.employee_name},${e.reason},${e.extra_reason || ""},"${e.start_time}","${e.end_time || ""}",${formatDuration(e.duration)},${e.ended_by || ""}\n`;
+            });
+            let blob = new Blob([csv], { type: "text/csv" });
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            a.href = url;
+            a.download = `Break_Logs_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // Init
+        loadEmployees();
         loadActive();
-        filterLogs();
-    });
-}
+        quickFilter("today");
+        
+        // Auto refresh active breaks every 30s
+        setInterval(loadActive, 30000);
 
-// FILTER LOGS
-function filterLogs(){
-    fetch(API+"/filter-logs",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization": token
-        },
-        body:JSON.stringify({
-            emp_id:filterEmp.value,
-            from:from.value,
-            to:to.value
-        })
-    })
-    .then(r=>r.json())
-    .then(showLogs);
-}
-
-// STORE CURRENT VIEW
-let currentLogs = [];
-
-// SHOW LOGS
-function showLogs(data){
-
-    currentLogs = data;
-
-    if(!data.length){
-        logTable.innerHTML = `<tr><td class="no-data">No records found</td></tr>`;
-        return;
-    }
-
-    let html=`<tr>
-    <th>ID</th><th>Name</th><th>Reason</th>
-    <th>Extra</th><th>Start</th><th>End</th>
-    <th>Duration</th><th>Ended By</th>
-    </tr>`;
-
-    data.forEach(e=>{
-        html+=`<tr>
-        <td>${e.emp_id}</td>
-        <td>${e.employee_name}</td>
-        <td>${e.reason}</td>
-        <td>${e.extra_reason || "-"}</td>
-        <td>${e.start_time}</td>
-        <td>${e.end_time||"-"}</td>
-        <td>${formatDuration(e.duration)}</td>
-        <td>${e.ended_by || "-"}</td>
-        </tr>`;
-    });
-
-    logTable.innerHTML=html;
-}
-
-// QUICK FILTERS
-function formatDateLocal(date) {
-    let d = new Date(date);
-    let year = d.getFullYear();
-    let month = ("0" + (d.getMonth() + 1)).slice(-2);
-    let day = ("0" + d.getDate()).slice(-2);
-    return `${year}-${month}-${day}`;
-}
-
-function quickFilter(type){
-    let today = new Date();
-    let fromDate, toDate;
-
-    if(type==="today"){
-        fromDate = toDate = today;
-    }
-    else if(type==="yesterday"){
-        let y = new Date();
-        y.setDate(y.getDate()-1);
-        fromDate = toDate = y;
-    }
-    else if(type==="7days"){
-        toDate = today;
-        fromDate = new Date();
-        fromDate.setDate(today.getDate()-6);
-    }
-
-    from.value = formatDateLocal(fromDate);
-    to.value = formatDateLocal(toDate);
-
-    filterLogs();
-}
-
-// CSV EXPORT (VISIBLE DATA ONLY)
-function exportCSV(){
-
-    if(!currentLogs.length){
-        alert("No data to export");
-        return;
-    }
-
-    let csv = "Emp ID,Name,Reason,Extra Details,Start,End,Duration,Ended By\n";
-
-    currentLogs.forEach(e => {
-        csv += `${e.emp_id},${e.employee_name},${e.reason},${e.extra_reason || ""},"${e.start_time}","${e.end_time || ""}",${formatDuration(e.duration)},${e.ended_by || ""}\n`;
-    });
-
-    let blob = new Blob([csv], { type: "text/csv" });
-    let url = URL.createObjectURL(blob);
-
-    let a = document.createElement("a");
-    a.href = url;
-    a.download = "Break_Logs.csv";
-    a.click();
-}
-
-// INIT
-loadEmployees();
-loadActive();
-quickFilter("today");
-
-</script>
+    </script>
 
 </body>
 </html>

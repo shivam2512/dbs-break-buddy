@@ -1,369 +1,596 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Break Buddy</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Break Buddy | Modern Break Tracking</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
     <style>
-        body {
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #8b5cf6;
+            --bg-dark: #0f172a;
+            --bg-darker: #020617;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+            color: var(--text-main);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            color: #fff;
+            overflow-x: hidden;
         }
 
+        /* Decorative background elements */
+        .bg-glow {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            filter: blur(150px);
+            opacity: 0.15;
+            z-index: -1;
+            border-radius: 50%;
+        }
+
+        .glow-1 { top: -100px; right: -100px; }
+        .glow-2 { bottom: -100px; left: -100px; background: var(--secondary); }
+
         .container {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(12px);
-            border-radius: 20px;
-            padding: 30px;
-            width: 350px;
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+            perspective: 1000px;
+        }
+
+        .main-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             text-align: center;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            margin-left: 4px;
         }
 
         input, select, textarea {
             width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 10px;
-            border: none;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            outline: none;
         }
 
-        button {
-            width: 48%;
-            padding: 10px;
-            margin: 5px;
-            border-radius: 10px;
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 24px;
+            border-radius: 12px;
             border: none;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
             cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
         }
 
-        #startBtn { background: green; color:white; }
-        #stopBtn { background: red; color:white; }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
 
-        .timer { font-size: 35px; margin-top: 10px; }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-start {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            background: #059669;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-stop {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: #dc2626;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 24px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-off { color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .status-on { color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+
+        .timer-display {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -1px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .time-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .time-box {
+            text-align: center;
+        }
+
+        .time-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .time-value {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .welcome-msg {
+            margin: 16px 0;
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--primary);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        #extra {
+            resize: none;
+            height: 80px;
+        }
+
+        .footer {
+            margin-top: 32px;
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .footer a {
+            color: var(--warning);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+            transition: border-color 0.3s;
+        }
+
+        .footer a:hover {
+            border-bottom-color: var(--warning);
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pulse-active {
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        [data-lucide] {
+            width: 20px;
+            height: 20px;
+        }
     </style>
 </head>
-
 <body>
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
 
-<div class="container">
+    <div class="container">
+        <div class="main-card">
+            <h2><i data-lucide="clock"></i> Break Buddy</h2>
 
-    <h2>⏳ Break Buddy</h2>
+            <div id="loginSection">
+                <div class="input-group">
+                    <label for="empId">Employee ID</label>
+                    <input id="empId" type="text" placeholder="e.g. EMP101" autocomplete="off">
+                </div>
+                <button class="btn btn-primary" onclick="login()">
+                    <i data-lucide="log-in"></i> Login
+                </button>
+            </div>
 
-    <input id="empId" placeholder="Enter Employee ID">
-    <button onclick="login()">Login</button>
+            <div id="breakSection" style="display: none;">
+                <p id="empName" class="welcome-msg"></p>
 
-    <h3 id="empName"></h3>
+                <div class="input-group">
+                    <label for="reason">Break Reason</label>
+                    <select id="reason">
+                        <option value="">Select a reason...</option>
+                        <option>Tea Break</option>
+                        <option>Lunch Break</option>
+                        <option>Personal Work</option>
+                        <option>Meeting</option>
+                        <option>Feedback</option>
+                        <option>Quality Feedback</option>
+                        <option>Operation Feedback</option>
+                        <option>Other</option>
+                    </select>
+                </div>
 
-    <select id="reason">
-    <option value="">Select Reason</option>
-    <option>Tea Break</option>
-    <option>Lunch Break</option>
-    <option>Personal Work</option>
-    <option>Meeting</option>
-    <option>Feedback</option>
-    <option>Quality Feedback</option> <!-- ✅ NEW -->
-    <option>Operation Feedback</option> <!-- ✅ NEW -->
-    <option>Other</option>
-</select>
+                <div class="input-group" id="extraContainer" style="display: none;">
+                    <label for="extra">Additional Details</label>
+                    <textarea id="extra" placeholder="Please specify..."></textarea>
+                </div>
 
-    <textarea id="extra" placeholder="Enter reason..." style="display:none;"></textarea>
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-start" onclick="startBreak()">
+                        <i data-lucide="play"></i> Start
+                    </button>
+                    <button id="stopBtn" class="btn btn-stop" onclick="stopBreak()" disabled>
+                        <i data-lucide="square"></i> Stop
+                    </button>
+                </div>
 
-    <div>
-        <button id="startBtn" onclick="startBreak()" disabled>Start</button>
-        <button id="stopBtn" onclick="stopBreak()" disabled>Stop</button>
+                <div id="statusBadge" class="status-badge status-off">
+                    <i data-lucide="circle-dot"></i>
+                    <span id="currentBreakText">Not on Break</span>
+                </div>
+
+                <div class="timer-display" id="timer">00:00:00</div>
+
+                <div class="time-info">
+                    <div class="time-box">
+                        <div class="time-label">Start Time</div>
+                        <div class="time-value" id="startTime">--:--:--</div>
+                    </div>
+                    <div class="time-box">
+                        <div class="time-label">End Time</div>
+                        <div class="time-value" id="endTime">--:--:--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>⚠️ Found a bug? 
+                    <a id="bugLink" href="#">Report it here</a>
+                </p>
+                <p style="margin-top: 8px; opacity: 0.7; font-size: 11px;">
+                    Last Updated: 14-May-26 11:43 AM IST
+                </p>
+            </div>
+        </div>
     </div>
 
-    <h3 id="currentBreak">🔴 Not on Break</h3>
+    <script>
+        const API = "https://dbs-break-buddy-jm0m.onrender.com";
+        let emp_id = "";
+        let startTime = null;
+        let timerInt = null;
+        let isStopping = false;
 
-    <div class="timer" id="timer">00:00</div>
+        const loginSection = document.getElementById("loginSection");
+        const breakSection = document.getElementById("breakSection");
+        const empIdInput = document.getElementById("empId");
+        const empNameEl = document.getElementById("empName");
+        const reasonSelect = document.getElementById("reason");
+        const extraContainer = document.getElementById("extraContainer");
+        const extraInput = document.getElementById("extra");
+        const startBtn = document.getElementById("startBtn");
+        const stopBtn = document.getElementById("stopBtn");
+        const statusBadge = document.getElementById("statusBadge");
+        const currentBreakText = document.getElementById("currentBreakText");
+        const timer = document.getElementById("timer");
+        const startTimeEl = document.getElementById("startTime");
+        const endTimeEl = document.getElementById("endTime");
 
-    <div>
-        Start: <span id="startTime">--</span><br>
-        End: <span id="endTime">--</span>
-    </div>
+        // Initialize Lucide icons
+        lucide.createIcons();
 
-<div style="margin-top:15px; font-size:12px;">
-    ⚠️ Found a bug? Mail to: 
-    <a id="bugLink" href="#" style="color:#ffd700; text-decoration:underline;">
-        shivamshinde786@gmail.com
-    </a> <br>
-    Last Updated: 06-May-26 02:55 PM IST
-</div>
-
-
-</div>
-
-
-<script>
-
-const API = "https://dbs-break-buddy-jm0m.onrender.com";
-
-let emp_id = "";
-let startTime = null;
-let timerInt = null;
-let isStopping = false; // ✅ NEW FLAG (stronger than userStopped)
-
-const empIdInput = document.getElementById("empId");
-const empNameEl = document.getElementById("empName");
-const reasonSelect = document.getElementById("reason");
-const extraInput = document.getElementById("extra");
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
-const currentBreak = document.getElementById("currentBreak");
-const timer = document.getElementById("timer");
-const startTimeEl = document.getElementById("startTime");
-const endTimeEl = document.getElementById("endTime");
-
-function login(){
-    emp_id = empIdInput.value.trim();
-
-    if(!emp_id){
-        alert("Enter Employee ID");
-        return;
-    }
-
-    fetch(API+"/validate",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({emp_id})
-    })
-    .then(res=>res.json())
-    .then(d=>{
-        if(!d.valid){
-            alert("Invalid ID");
-            return;
-        }
-
-        empNameEl.innerText = "Welcome " + d.name;
-        checkStatus();
-    });
-}
-
-function checkStatus(){
-    fetch(API+"/status",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({emp_id})
-    })
-    .then(res=>res.json())
-    .then(d=>{
-
-        if(d.active){
-            startTime = new Date(d.start_time);
-            startTimer();
-
-            // ✅ FIX: include extra_reason
-            let text = d.reason;
-
-            if (d.extra_reason && d.extra_reason.trim() !== "") {
-                text += " (" + d.extra_reason + ")";
+        function login() {
+            emp_id = empIdInput.value.trim();
+            if (!emp_id) {
+                alert("Please enter your Employee ID");
+                return;
             }
 
-            currentBreak.innerText = "🟢 " + text;
+            fetch(API + "/validate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ emp_id })
+            })
+            .then(res => res.json())
+            .then(d => {
+                if (!d.valid) {
+                    alert("Invalid Employee ID");
+                    return;
+                }
 
-            startBtn.disabled = true;
-            stopBtn.disabled = false;
+                empNameEl.innerText = "Welcome, " + d.name;
+                loginSection.style.display = "none";
+                breakSection.style.display = "block";
+                breakSection.classList.add('animate__animated', 'animate__fadeIn');
+                checkStatus();
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Server connection error. Please try again.");
+            });
+        }
 
-        } else {
+        function checkStatus() {
+            fetch(API + "/status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ emp_id })
+            })
+            .then(res => res.json())
+            .then(d => {
+                if (d.active) {
+                    startTime = new Date(d.start_time);
+                    startTimer();
+
+                    let text = d.reason;
+                    if (d.extra_reason && d.extra_reason.trim() !== "") {
+                        text += " (" + d.extra_reason + ")";
+                    }
+
+                    updateStatusUI(true, text);
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                } else {
+                    updateStatusUI(false);
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                }
+            });
+        }
+
+        function updateStatusUI(active, text = "Not on Break") {
+            if (active) {
+                statusBadge.className = "status-badge status-on pulse-active";
+                currentBreakText.innerText = text;
+                timer.style.color = "var(--success)";
+            } else {
+                statusBadge.className = "status-badge status-off";
+                currentBreakText.innerText = text;
+                timer.style.color = "var(--text-main)";
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInt);
+            timerInt = setInterval(() => {
+                let sec = Math.floor((new Date() - startTime) / 1000);
+                let h = Math.floor(sec / 3600);
+                let m = Math.floor((sec % 3600) / 60);
+                let s = sec % 60;
+
+                timer.innerText = `${("0" + h).slice(-2)}:${("0" + m).slice(-2)}:${("0" + s).slice(-2)}`;
+                startTimeEl.innerText = new Date(startTime).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+                if (isStopping) return;
+
+                // Sync with server occasionally
+                if (sec % 10 === 0) {
+                    fetch(API + "/status", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ emp_id })
+                    })
+                    .then(res => res.json())
+                    .then(d => {
+                        if (!d.active) {
+                            stopTimerLocally(d.ended_by === "ADMIN");
+                        }
+                    });
+                }
+            }, 1000);
+        }
+
+        function stopTimerLocally(byAdmin = false) {
+            clearInterval(timerInt);
+            updateStatusUI(false, byAdmin ? "Break Ended by Admin" : "Not on Break");
+            if (byAdmin) alert("Your break was ended by admin");
+            
+            endTimeEl.innerText = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
             startBtn.disabled = false;
             stopBtn.disabled = true;
         }
-    });
-}
 
-function startTimer(){
-    clearInterval(timerInt);
-
-    timerInt = setInterval(() => {
-
-        let sec = Math.floor((new Date() - startTime) / 1000);
-
-        let h = Math.floor(sec / 3600);
-        let m = Math.floor((sec % 3600) / 60);
-        let s = sec % 60;
-
-        timer.innerText = `${h}:${("0"+m).slice(-2)}:${("0"+s).slice(-2)}`;
-
-        startTimeEl.innerText =
-            new Date(startTime).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
-
-        // ❌ STOP polling if user clicked stop
-        if (isStopping) return;
-
-        fetch(API+"/status",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({emp_id})
-        })
-        .then(res=>res.json())
-        .then(d=>{
-
-            if(!d.active){
-
-                clearInterval(timerInt);
-
-                if(d.ended_by === "ADMIN"){
-                    currentBreak.innerText = "🔴 Break Ended by Admin";
-                    alert("Your break was ended by admin");
-                } else {
-                    currentBreak.innerText = "🔴 Not on Break";
-                }
-
-                endTimeEl.innerText =
-                    new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
-
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
+        reasonSelect.addEventListener("change", () => {
+            const requiresExtra = ["Personal Work", "Meeting", "Feedback", "Quality Feedback", "Operation Feedback", "Other"];
+            if (requiresExtra.includes(reasonSelect.value)) {
+                extraContainer.style.display = "block";
+                extraContainer.classList.add('animate__animated', 'animate__fadeIn');
+            } else {
+                extraContainer.style.display = "none";
+                extraInput.value = "";
             }
-
         });
 
-    },1000);
-}
+        function startBreak() {
+            if (!reasonSelect.value) {
+                alert("Please select a reason");
+                return;
+            }
 
-reasonSelect.addEventListener("change", ()=>{
+            const requiresExtra = ["Personal Work", "Meeting", "Feedback", "Quality Feedback", "Operation Feedback", "Other"];
+            if (requiresExtra.includes(reasonSelect.value) && (!extraInput.value || extraInput.value.trim() === "")) {
+                alert("Please enter details for the selected reason");
+                return;
+            }
 
-    const requiresExtra = [
-        "Personal Work",
-        "Meeting",
-        "Feedback",
-        "Quality Feedback",     // ✅ NEW
-        "Operation Feedback",   // ✅ NEW
-        "Other"
-    ];
+            isStopping = false;
+            fetch(API + "/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    emp_id,
+                    reason: reasonSelect.value,
+                    extra: extraInput.value
+                })
+            })
+            .then(res => res.json())
+            .then(d => {
+                if (d.error) { alert(d.error); return; }
 
-    if (requiresExtra.includes(reasonSelect.value)) {
-        extraInput.style.display = "block";
-    } else {
-        extraInput.style.display = "none";
-        extraInput.value = ""; // reset
-    }
-});
-
-// function startBreak(){
-//     isStopping = false;
-
-//     fetch(API+"/start",{
-//         method:"POST",
-//         headers:{"Content-Type":"application/json"},
-//         body:JSON.stringify({
-//             emp_id,
-//             reason: reasonSelect.value,
-//             extra: extraInput.value
-//         })
-//     })
-//     .then(res=>res.json())
-//     .then(d=>{
-//         if(d.error){ alert(d.error); return; }
-
-//         startTime = new Date(d.start_time);
-//         startTimer();
-
-//         currentBreak.innerText = "🟢 " + reasonSelect.value;
-
-//         startBtn.disabled = true;
-//         stopBtn.disabled = false;
-//     });
-// }
-
-function startBreak(){
-
-    isStopping = false;
-
-    // ✅ Validate reason selected
-    if (!reasonSelect.value) {
-        alert("Please select a reason");
-        return;
-    }
-
-    // ✅ Reasons that REQUIRE extra input
-    const requiresExtra = [
-        "Personal Work",
-        "Meeting",
-        "Feedback",
-        "Quality Feedback",
-        "Operation Feedback",
-        "Other"
-    ];
-
-    // ✅ Validate extra field
-    if (requiresExtra.includes(reasonSelect.value) &&
-        (!extraInput.value || extraInput.value.trim() === "")) {
-        alert("Please enter reason details");
-        return;
-    }
-
-    // ✅ API call
-    fetch(API+"/start",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            emp_id,
-            reason: reasonSelect.value,
-            extra: extraInput.value
-        })
-    })
-    .then(res=>res.json())
-    .then(d=>{
-        if(d.error){ 
-            alert(d.error); 
-            return; 
+                startTime = new Date(d.start_time);
+                startTimer();
+                updateStatusUI(true, reasonSelect.value);
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            });
         }
 
-        startTime = new Date(d.start_time);
-        startTimer();
+        function stopBreak() {
+            isStopping = true;
+            clearInterval(timerInt);
 
-        currentBreak.innerText = "🟢 " + reasonSelect.value;
+            fetch(API + "/stop", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ emp_id })
+            })
+            .then(() => {
+                stopTimerLocally();
+            });
+        }
 
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-    });
-}
+        document.getElementById("bugLink").addEventListener("click", (e) => {
+            e.preventDefault();
+            const subject = "Bug Report - Break Buddy";
+            const body = `Employee ID: ${emp_id || "Not Logged In"}\n\nDescribe the issue:\n`;
+            const gmailURL = `https://mail.google.com/mail/?view=cm&fs=1&to=shivamshinde786@gmail.com&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.open(gmailURL, "_blank");
+        });
 
-function stopBreak(){
-    isStopping = true; // ✅ BLOCK polling instantly
-    clearInterval(timerInt); // ✅ STOP timer immediately
+        // Allow Enter key to login
+        empIdInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") login();
+        });
 
-    fetch(API+"/stop",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({emp_id})
-    })
-    .then(()=>{
-        currentBreak.innerText = "🔴 Not on Break";
-
-        endTimeEl.innerText =
-            new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
-
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-    });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("bugLink").addEventListener("click", () => {
-
-        const subject = "Bug Report - Break Buddy";
-
-        const body =
-`Employee ID: ${emp_id || "Not Logged In"}
-
-Describe the issue:
-`;
-
-        const gmailURL =
-`https://mail.google.com/mail/?view=cm&fs=1&to=shivamshinde786@gmail.com&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-        window.open(gmailURL, "_blank"); // opens Gmail in new tab
-    });
-});
-
-</script>
+    </script>
 </body>
 </html>

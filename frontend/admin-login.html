@@ -1,105 +1,282 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Admin Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Break Buddy</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-<style>
-body {
-    font-family: Arial;
-    text-align:center;
-    margin-top:100px;
-    background:#f4f6f9;
-}
-.container {
-    display:inline-block;
-    padding:30px;
-    background:white;
-    border-radius:10px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.2);
-}
-input {
-    padding:10px;
-    margin:8px;
-    width:250px;
-    border-radius:5px;
-    border:1px solid #ccc;
-}
-button {
-    padding:10px 20px;
-    background:#4CAF50;
-    color:white;
-    border:none;
-    border-radius:5px;
-    cursor:pointer;
-}
-button:hover {
-    background:#45a049;
-}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-
-<h2>🔐 Admin Login</h2>
-
-<input id="username" placeholder="Username"><br>
-<input id="password" type="password" placeholder="Password"><br>
-
-<button onclick="login()">Login</button>
-
-<p id="error" style="color:red;"></p>
-
-</div>
-
-<script>
-
-//const API="http://localhost:3000";
-
-const API = "https://dbs-break-buddy-jm0m.onrender.com";
-
-// 🔒 If already logged in → redirect
-if(localStorage.getItem("admin_token")){
-    window.location.href="admin.html";
-}
-
-function login(){
-
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    if(!username || !password){
-        document.getElementById("error").innerText = "Enter username & password";
-        return;
-    }
-
-    fetch(API+"/admin-login",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ username, password })
-    })
-    .then(res=>res.json())
-    .then(d=>{
-
-        if(d.error){
-            document.getElementById("error").innerText = d.error;
-            return;
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #8b5cf6;
+            --bg-dark: #0f172a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
         }
 
-        // ✅ Store token
-        localStorage.setItem("admin_token", d.token);
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        // ✅ Redirect
-        window.location.replace("admin.html");
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
 
-    })
-    .catch(()=>{
-        document.getElementById("error").innerText = "Server not reachable";
-    });
-}
+        .bg-glow {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            background: var(--secondary);
+            filter: blur(150px);
+            opacity: 0.1;
+            z-index: -1;
+            border-radius: 50%;
+        }
 
-</script>
+        .glow-1 { top: -200px; left: -200px; }
+        .glow-2 { bottom: -200px; right: -200px; background: var(--primary); }
 
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            animation: zoomIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .logo-box {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .logo-box i {
+            color: white;
+            width: 32px;
+            height: 32px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            width: 18px;
+            height: 18px;
+        }
+
+        input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 14px 14px 14px 44px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        #error {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 16px;
+            height: 20px;
+            font-weight: 500;
+        }
+
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
+
+    <div class="container">
+        <div class="login-card">
+            <div class="logo-box">
+                <i data-lucide="shield-check"></i>
+            </div>
+            <h2>Admin Access</h2>
+            <p class="subtitle">Please enter your credentials to continue</p>
+
+            <div class="input-group">
+                <i data-lucide="user"></i>
+                <input id="username" type="text" placeholder="Username" autocomplete="username">
+            </div>
+
+            <div class="input-group">
+                <i data-lucide="lock"></i>
+                <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+            </div>
+
+            <button class="btn" onclick="login()">
+                Sign In <i data-lucide="arrow-right"></i>
+            </button>
+
+            <p id="error"></p>
+        </div>
+    </div>
+
+    <script>
+        const API = "https://dbs-break-buddy-jm0m.onrender.com";
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // 🔒 If already logged in → redirect
+        if(localStorage.getItem("admin_token")){
+            window.location.href = "admin.html";
+        }
+
+        function login(){
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const errorEl = document.getElementById("error");
+
+            if(!username || !password){
+                errorEl.innerText = "Enter username & password";
+                return;
+            }
+
+            errorEl.innerText = ""; // Clear previous errors
+
+            fetch(API + "/admin-login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(d => {
+                if(d.error){
+                    errorEl.innerText = d.error;
+                    errorEl.classList.add('animate__animated', 'animate__shakeX');
+                    setTimeout(() => errorEl.classList.remove('animate__shakeX'), 500);
+                    return;
+                }
+
+                // ✅ Store token
+                localStorage.setItem("admin_token", d.token);
+
+                // ✅ Redirect
+                window.location.replace("admin.html");
+            })
+            .catch(() => {
+                errorEl.innerText = "Server connection error";
+            });
+        }
+
+        // Allow Enter key to login
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") login();
+            });
+        });
+    </script>
 </body>
 </html>
