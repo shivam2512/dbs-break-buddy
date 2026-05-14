@@ -623,8 +623,8 @@
                         <td><span class="pill pill-info">${e.emp_id}</span></td>
                         <td style="font-weight: 500">${e.employee_name}</td>
                         <td>${e.reason}</td>
-                        <td style="font-size: 12px">${new Date(e.start_time).toLocaleString()}</td>
-                        <td style="font-size: 12px">${e.end_time ? new Date(e.end_time).toLocaleString() : "-"}</td>
+                        <td style="font-size: 12px">${e.start_time}</td>
+                        <td style="font-size: 12px">${e.end_time || "-"}</td>
                         <td><span class="pill ${durationClass}">${formatDuration(e.duration)}</span></td>
                         <td><span class="pill ${e.ended_by === 'ADMIN' ? 'pill-danger' : 'pill-success'}">${e.ended_by || "USER"}</span></td>
                     </tr>`;
