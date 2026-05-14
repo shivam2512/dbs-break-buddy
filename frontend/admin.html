@@ -281,10 +281,14 @@
 
         .btn-quick:hover { background: #e2e8f0; color: #1e293b; }
 
+        .col-8 { grid-column: span 8; }
+        .col-4 { grid-column: span 4; }
+        .col-12 { grid-column: span 12; }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .grid { grid-template-columns: 1fr; }
-            .col-8, .col-4 { grid-column: span 12; }
+            .col-8, .col-4 { grid-column: span 1; }
         }
 
         @media (max-width: 768px) {
@@ -330,10 +334,6 @@
                 width: 100%;
             }
         }
-
-        .col-8 { grid-column: span 8; }
-        .col-4 { grid-column: span 4; }
-        .col-12 { grid-column: span 12; }
 
     </style>
 </head>
