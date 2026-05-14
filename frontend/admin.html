@@ -115,6 +115,7 @@
             border-radius: 16px;
             padding: 24px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            min-width: 0; /* Prevents grid blowout from table-container */
         }
 
         .card h3 {
@@ -294,6 +295,8 @@
         @media (max-width: 768px) {
             .top-bar {
                 padding: 12px 16px;
+                flex-wrap: wrap;
+                gap: 8px;
             }
             .user-actions span {
                 display: none;
@@ -318,6 +321,9 @@
             .btn-logout {
                 padding: 6px 12px;
                 font-size: 14px;
+            }
+            .table-container {
+                -webkit-overflow-scrolling: touch;
             }
         }
 
