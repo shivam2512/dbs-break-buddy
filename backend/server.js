@@ -1,10 +1,21 @@
+// ================= FORCE IPv4 FOR ALL DNS LOOKUPS =================
+// Render operates on an IPv4-only network. This forces Node to resolve all hostnames to IPv4.
+const dns = require('dns');
+const originalLookup = dns.lookup;
+dns.lookup = function(hostname, options, callback) {
+    if (typeof options === 'function') {
+        callback = options;
+        options = {};
+    }
+    const opts = typeof options === 'object' ? { ...options, family: 4 } : { family: 4 };
+    originalLookup(hostname, opts, callback);
+};
+
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
-
-
 
 const app = express();
 const SECRET = "MY_SUPER_SECRET_KEY_123";
@@ -19,20 +30,9 @@ if (!process.env.SUPABASE_DB_URL) {
     process.exit(1);
 }
 
-const dns = require('dns');
 const pool = new Pool({
     connectionString: process.env.SUPABASE_DB_URL,
-    ssl: { rejectUnauthorized: false },
-    lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { ...options, family: 4 }, (err, address, family) => {
-            if (err) {
-                console.error(`❌ DNS lookup failed for ${hostname}:`, err);
-            } else {
-                console.log(`📡 DNS resolved ${hostname} to ${address} (IPv${family})`);
-            }
-            callback(err, address, family);
-        });
-    }
+    ssl: { rejectUnauthorized: false }
 });
 
 // Test connection on startup
