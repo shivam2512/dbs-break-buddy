@@ -13,8 +13,9 @@ app.use(express.json());
 app.use(cors());
 
 // ================= DB CONNECTION =================
+// Uses Supabase PostgreSQL (set SUPABASE_DB_URL in environment)
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.SUPABASE_DB_URL || process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
