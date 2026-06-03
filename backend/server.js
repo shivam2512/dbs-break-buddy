@@ -67,6 +67,17 @@ async function initDB() {
         CREATE SEQUENCE IF NOT EXISTS emp_seq START 1;
     `);
 
+    // Sync sequence to avoid duplicates and ensure it starts from PUN0235 as requested
+    try {
+        const maxResult = await pool.query("SELECT COALESCE(MAX(SUBSTRING(emp_id FROM 4)::integer), 0) AS max_id FROM employees");
+        const maxId = maxResult.rows[0].max_id;
+        const nextVal = Math.max(maxId + 1, 235);
+        await pool.query(`ALTER SEQUENCE emp_seq RESTART WITH ${nextVal}`);
+        console.log(`🔄 Synced emp_seq. Next ID will be: PUN${String(nextVal).padStart(4, '0')}`);
+    } catch (err) {
+        console.error("⚠️ Failed to sync emp_seq:", err);
+    }
+
     await pool.query(`
         CREATE TABLE IF NOT EXISTS break_logs (
             id SERIAL PRIMARY KEY,
